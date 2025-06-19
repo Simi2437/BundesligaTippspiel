@@ -3,7 +3,7 @@ from services.auth_service import current_user
 from models.spieltage import get_all_spieltage, get_spiele_by_spieltag
 from models.tipps import get_tipp, save_tipp
 
-@ui.page('/tippen')
+@ui.page('/game/tippen')
 def tippen():
     user = current_user()
     if not user:
@@ -18,7 +18,7 @@ def tippen():
             ui.label(f'Spieltag {spieltag["nummer"]}').classes('text-lg font-bold')
             spiele = get_spiele_by_spieltag(spieltag["id"])
             for s in spiele:
-                tipp = get_tipp(user['id'], s['id']) or {'tipp_heim': '', 'tipp_gast': ''}
+                tipp = get_tipp(user['id'], s['id']) or {'tipp_heim': None, 'tipp_gast': None}
                 with ui.row().classes('items-center gap-4'):
                     ui.label(f'{s["heim"]} vs {s["gast"]}').classes('w-60')
                     tipp_heim = ui.number(value=tipp['tipp_heim'], min=0).classes('w-20')

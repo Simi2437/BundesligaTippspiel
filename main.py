@@ -4,6 +4,7 @@ from nicegui import ui
 from routes import home, auth
 from routes.config import teams, spieltage
 from routes.config.spieltage import init_spieltage
+from routes.game import tippen
 
 from uielements.header import build_header
 
@@ -34,6 +35,13 @@ def config_teams():
 def config_teams():
     build_header()
     spieltage.config_spieltage()
+
+@ui.page("/game/tippen")
+def tipps():
+    build_header()
+    tippen.tippen()
+
+
 
 #@ui.page("/admin")
 #def admin_page():

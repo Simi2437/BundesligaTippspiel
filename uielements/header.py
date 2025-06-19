@@ -11,6 +11,7 @@ def build_header():
     with ui.header().classes('bg-primary text-white'):
         ui.label(f'⚽ Tippspiel - Eingeloggt als {user["username"]} ({user["role"]})')
         ui.button('🏠 Start', on_click=lambda: ui.navigate.to('/')).props('flat').classes('text-white')
+        ui.button('⚽ Deine Tipps', on_click=lambda: ui.navigate.to('/game/tippen')).props('flat').classes('text-white')
         if user['role'] == 'admin':
             ui.button('Teams', on_click=lambda: ui.navigate.to('/config/teams')).props('flat').classes('text-white')
             ui.button('Spieltage', on_click=lambda: ui.navigate.to('/config/spieltage')).props('flat').classes('text-white')
