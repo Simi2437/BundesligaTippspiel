@@ -27,6 +27,7 @@ def register_page():
     def handle_register():
         if auth_service.register(username.value, password.value):
             ui.notify("Registration successful")
+            ui.navigate.to("/login")
         else:
             ui.notify("Username exists")
 

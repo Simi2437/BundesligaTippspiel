@@ -1,5 +1,5 @@
 
-from nicegui import ui
+from nicegui import ui, app
 
 from routes import home, auth
 from routes.config import teams, spieltage
@@ -20,6 +20,12 @@ def index():
 def login():
     build_header()
     auth.login_page()
+
+@ui.page("/logout")
+def logout():
+    app.storage.user.clear()
+    ui.notify('Abgemeldet')
+    ui.navigate.to('/')
 
 @ui.page("/register")
 def register():

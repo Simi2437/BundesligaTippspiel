@@ -20,8 +20,9 @@ def tippen():
             for s in spiele:
                 tipp = get_tipp(user['id'], s['id']) or {'tipp_heim': None, 'tipp_gast': None}
                 with ui.row().classes('items-center gap-4'):
-                    ui.label(f'{s["heim"]} vs {s["gast"]}').classes('w-60')
+                    ui.label(f'{s["heim"]} vs {s["gast"]}').classes('w-30')
                     tipp_heim = ui.number(value=tipp['tipp_heim'], min=0).classes('w-20')
+                    ui.label(f":")
                     tipp_gast = ui.number(value=tipp['tipp_gast'], min=0).classes('w-20')
 
                     def speichern(s_id=s['id'], th=tipp_heim, tg=tipp_gast):
