@@ -5,9 +5,9 @@ _conn.execute('''
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
         username TEXT UNIQUE,
-        password_hash TEXT,
-        role TEXT
-    );''')
+        password_hash TEXT
+    )
+''')
 _conn.execute('''
         CREATE TABLE IF NOT EXISTS teams (
         id INTEGER PRIMARY KEY,
@@ -33,7 +33,6 @@ _conn.execute(
 )
     '''
 )
-
 _conn.execute('''
     CREATE TABLE IF NOT EXISTS spiele (
         id INTEGER PRIMARY KEY,
@@ -48,5 +47,27 @@ _conn.execute('''
         FOREIGN KEY(gast_id) REFERENCES teams(id)
     )
 ''')
+_conn.execute('''
+    CREATE TABLE IF NOT EXISTS rights (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL
+)
+''')
+_conn.execute('''
+    CREATE TABLE IF NOT EXISTS user_rights (
+    user_id INTEGER,
+    right_id INTEGER,
+    PRIMARY KEY (user_id, right_id)
+)
+''')
+_conn.execute('''
+    CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+)
+''')
+for r in ['admin']:
+    _conn.execute('INSERT OR IGNORE INTO rights (name) VALUES (?)', (r,))
+_conn.commit()
 def get_db():
     return _conn

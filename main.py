@@ -1,4 +1,6 @@
+import os
 
+from fastapi import FastAPI
 from nicegui import ui, app
 
 from routes import home, auth
@@ -7,6 +9,7 @@ from routes.config.spieltage import init_spieltage
 from routes.game import tippen
 
 from uielements.header import build_header
+
 
 
 init_spieltage()
@@ -48,9 +51,11 @@ def tipps():
     tippen.tippen()
 
 
+REL_PATH = os.environ.get("REL_PATH", "")
 
-#@ui.page("/admin")
-#def admin_page():
-#    admin.page()
-
-ui.run(title="Tippspiel", reload=False, storage_secret="my_secret")
+if REL_PATH:
+    sub_app = FastAPI()
+    app.mount(REL_PATH, sub_app)  # mount die App unter /tippspiel
+    ui.run_with(sub_app, title='Tippspiel', storage_secret='geheim', reload=False)
+else:
+    ui.run(title='Tippspiel', storage_secret='geheim', reload=False)

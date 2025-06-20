@@ -1,13 +1,14 @@
 from nicegui import ui
 
 from models.teams import create_team, get_all_teams, update_team, delete_team
+from models.user import get_user_rights
 from services.auth_service import current_user
 
 
 @ui.page("/config/teams")
 def config_teams_page():
     user = current_user()
-    if not user or user["role"] != "admin":
+    if not user or "admin" not in get_user_rights(user["id"]):
         ui.notify("Kein Zugriff")
         ui.navigate.to("/")
         return

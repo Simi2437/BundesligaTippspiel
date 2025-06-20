@@ -1,5 +1,6 @@
 from nicegui import ui
 
+from models.user import get_user_rights
 from services.auth_service import logout, current_user
 
 
@@ -10,10 +11,13 @@ def page():
     if not user:
         ui.navigate.to("/login")
         return
-    ui.label(f"Welcome {user["username"]}, Role: {user["role"]}")
-    ui.button("Logout", on_click=lambda: ui.navigate.to("/logout"))
+    ui.label(f"Willkommen {user['username']}")
+    ui.button('🔢 Tippen', on_click=lambda: ui.navigate.to('/game/tippen')).props('flat')
+    ui.button('🚪 Logout', on_click=lambda: ui.navigate.to('/logout')).props('flat')
+    ui.button('🧑‍💻 Registrieren', on_click=lambda: ui.navigate.to('/register')).props('flat')
 
-    if user["role"] == "admin":
-        ui.button("🛠 Teams verwalten", on_click=lambda : ui.navigate.to("config/teams"))
-        ui.button("🛠 Spieltage verwalten", on_click=lambda : ui.navigate.to("config/spieltage"))
+    if "admin" in get_user_rights(user["id"]):
+        ui.button('📋 Konfiguration Teams', on_click=lambda: ui.navigate.to('/config/teams')).props('flat')
+        ui.button('📅 Konfiguration Spieltage', on_click=lambda: ui.navigate.to('/config/spieltage')).props('flat')
+        ui.button("📅 Konfiguration Spiel", on_click=lambda: ui.navigate.to("/config/spiel")).props("flat")
 
