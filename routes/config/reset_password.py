@@ -1,0 +1,22 @@
+from nicegui import ui
+from starlette.requests import Request
+
+from models import user
+from services import auth_service
+
+
+@ui.page("/config/reset_password")
+def reset_password_page(request: Request):
+    username = request.query_params.get('username', '')
+
+    ui.label('🔁 Neues Passwort vergeben')
+
+    username_input = ui.input('Benutzername', value=username).props('readonly')
+    new_password = ui.input('Neues Passwort', password=True)
+
+    def speichern():
+        auth_service.set_user_password_unhashed(username_input.value, new_password.value)
+        ui.notify('✅ Passwort gesetzt, bitte einloggen')
+        ui.navigate.to('/login')
+
+    ui.button('💾 Passwort speichern', on_click=speichern)

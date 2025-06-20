@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from db.database import get_db
 
 
@@ -8,3 +10,14 @@ def get_setting(key: str, default: str = None) -> str:
 def set_setting(key: str, value: str):
     get_db().execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (key, value))
     get_db().commit()
+
+
+def is_tipp_ende_passed() -> bool:
+    tipp_ende_str = get_setting('tipp_ende')
+    if not tipp_ende_str:
+        return False  # Kein Datum gesetzt = immer offen
+    try:
+        tipp_ende = datetime.fromisoformat(tipp_ende_str)
+        return datetime.now() > tipp_ende
+    except Exception:
+        return False  # Bei Parsing-Fehler lieber offen lassen

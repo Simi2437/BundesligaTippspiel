@@ -12,10 +12,11 @@ def build_header():
     with ui.header().classes("bg-primary text-white"):
         with ui.row().classes("ml-auto items-center"):
             ui.label(f'⚽ Tippspiel - Eingeloggt als {user["username"]}')
-            ui.button("🏠 Home", on_click=lambda: ui.navigate.to("/")).props("flat text-white")
+            ui.button("🏠 Home", on_click=lambda: ui.navigate.to("/")).props("flat").classes("text-white")
             nav_menu = ui.menu().props('anchor="bottom right" self="top right"')
             with nav_menu:
                 with ui.list().classes('w-full'):
+                    ui.button("🏠 Home", on_click=lambda: ui.navigate.to("/")).props("flat")
                     ui.item("🔢 Tippen", on_click=lambda: ui.navigate.to("/game/tippen")).props("flat")
                     ui.item("🚪 Logout", on_click=lambda: ui.navigate.to("/logout")).props("flat")
                     ui.item("🧑‍💻 Registrieren", on_click=lambda: ui.navigate.to("/register")).props("flat")
@@ -27,6 +28,9 @@ def build_header():
                         )
                         ui.item("📅 Konfiguration Spiel", on_click=lambda: ui.navigate.to("/config/game")).props("flat")
                         ui.item('📄 LOG anzeigen', on_click=lambda: ui.navigate.to('/log'))
+                        ui.item("👥 Konfiguration Benutzer", on_click=lambda: ui.navigate.to("/config/users")).props(
+                            "flat")
+
             ui.button(icon="menu").props("flat round dense").classes("text-white").on(
                 "click", lambda e: nav_menu.open()
             )

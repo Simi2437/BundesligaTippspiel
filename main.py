@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from nicegui import ui, app
 
 from routes import home, auth, action_log
-from routes.config import teams, spieltage, game
+from routes.config import teams, spieltage, game, usermanagement, reset_password
 from routes.config.spieltage import init_spieltage
 from routes.game import tippen
 
@@ -60,6 +60,15 @@ def tipps():
     build_header()
     tippen.tippen()
 
+# @ui.page("/config/reset_password")
+# def reset_password_func():
+#     build_header()
+#     reset_password.reset_password_page()
+
+@ui.page("/config/users")
+def config_users():
+    build_header()
+    usermanagement.config_users()
 
 
 

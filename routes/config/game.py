@@ -24,7 +24,10 @@ def config_game():
         tipp_uhrzeit = ui.time(value=tipp_dt.time()).props('label=Tipp-Ende (Uhrzeit)')
 
         def speichern():
-            combined = datetime.combine(tipp_datum.value, tipp_uhrzeit.value)
+            date_obj = datetime.strptime(tipp_datum.value, '%Y-%m-%d').date()
+            time_obj = datetime.strptime(tipp_uhrzeit.value, '%H:%M').time()
+            combined = datetime.combine(date_obj, time_obj)
+
             set_setting('saison_name', saison_name_input.value)
             set_setting('tipp_ende', combined.isoformat())
             ui.notify('✅ Einstellungen gespeichert')
