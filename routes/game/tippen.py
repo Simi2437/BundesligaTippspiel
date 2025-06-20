@@ -39,18 +39,30 @@ def tippen():
                 tipp = get_tipp(user["id"], spiel["id"]) or {"tipp_heim": None, "tipp_gast": None}
                 with ui.row().classes("items-center gap-4"):
                     ui.label(f'{spiel["heim"]} vs {spiel["gast"]}').classes("w-30")
-                    tipp_heim = ui.number(value=tipp["tipp_heim"], min=0).classes("w-20")
+                    tipp_heim = (
+                        ui.number(value=tipp["tipp_heim"], min=0)
+                        .classes("w-20 text-center")
+                        .props("outlined dense")
+                    )
                     if not tipp_abgabe_erlaubt:
                         tipp_heim.props("readonly")
+                        tipp_heim.tooltip("Tippen ist nicht mehr möglich, da das Tippende erreicht ist.")
                     ui.label(f":")
-                    tipp_gast = ui.number(value=tipp["tipp_gast"], min=0).classes("w-20")
+                    tipp_gast = (
+                        ui.number(value=tipp["tipp_gast"], min=0)
+                        .classes("w-20 text-center")
+                        .props("outlined dense")
+                    )
                     if not tipp_abgabe_erlaubt:
                         tipp_gast.props("readonly")
+                        tipp_gast.tooltip("Tippen ist nicht mehr möglich, da das Tippende erreicht ist.")
 
                     def speichern(s_id=spiel["id"], th=tipp_heim, tg=tipp_gast):
                         save_tipp(user["id"], s_id, th.value, tg.value)
                         ui.notify("Tipp gespeichert")
 
+                    tooltip_text = "Tipp speichern" if tipp_abgabe_erlaubt else "Tippabgabe nicht mehr möglich"
+
                     ui.button("💾", on_click=speichern).props(
                         "flat" + ("" if tipp_abgabe_erlaubt else " disable")
-                    ).classes("text-green")
+                    ).classes("text-green").tooltip(tooltip_text)
