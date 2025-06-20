@@ -18,3 +18,9 @@ def save_tipp(user_id, spiel_id, heim, gast):
         ON CONFLICT(user_id, spiel_id) DO UPDATE SET tipp_heim=excluded.tipp_heim, tipp_gast=excluded.tipp_gast
     ''', (user_id, spiel_id, heim, gast))
     conn.commit()
+
+def get_tipp_statistik(user_id):
+    conn = get_db()
+    total = conn.execute('SELECT COUNT(*) FROM spiele').fetchone()[0]
+    getippt = conn.execute('SELECT COUNT(*) FROM tipps WHERE user_id = ?', (user_id,)).fetchone()[0]
+    return getippt, total - getippt

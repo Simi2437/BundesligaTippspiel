@@ -21,11 +21,12 @@ def login_page():
 
 def register_page():
     ui.label("Register")
+    email = ui.input("E-Mail")
     username = ui.input("Username")
     password = ui.input("Password", password=True)
 
     def handle_register():
-        if auth_service.register(username.value, password.value):
+        if auth_service.register(username.value, password.value, email.value):
             ui.notify("Registration successful")
             ui.navigate.to("/login")
         else:

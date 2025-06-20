@@ -3,8 +3,8 @@ import os
 from fastapi import FastAPI
 from nicegui import ui, app
 
-from routes import home, auth
-from routes.config import teams, spieltage
+from routes import home, auth, action_log
+from routes.config import teams, spieltage, game
 from routes.config.spieltage import init_spieltage
 from routes.game import tippen
 
@@ -35,10 +35,20 @@ def register():
     build_header()
     auth.register_page()
 
+@ui.page("/log")
+def show_log():
+    build_header()
+    action_log.show_log()
+
 @ui.page("/config/teams")
 def config_teams():
     build_header()
     teams.config_teams_page()
+
+@ui.page("/config/game")
+def config_game():
+    build_header()
+    game.config_game()
 
 @ui.page("/config/spieltage")
 def config_teams():
@@ -49,6 +59,8 @@ def config_teams():
 def tipps():
     build_header()
     tippen.tippen()
+
+
 
 
 REL_PATH = os.environ.get("REL_PATH", "")

@@ -8,15 +8,12 @@ def user_count():
     result = conn.execute('SELECT COUNT(*) FROM users').fetchone()
     return result[0] if result else 0
 
-def create_user(username, password_hash, role=None):
+def create_user(username, password_hash, email):
     try:
         conn = get_db()
 
-        if role is None:
-            role = "admin" if user_count() == 0 else "user"
-
-        conn.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)',
-                     (username, password_hash))
+        conn.execute('INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)',
+                     (username, password_hash, email))
         user_id = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()[0]
 
         if user_count() == 1:
