@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  tippspiel:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/tippspiel:/data  # persistente DB
+    environment:
+      - REL_PATH=/tippspiel
+      - DB_FILE=/data/data.db
+    restart: unless-stopped

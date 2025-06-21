@@ -4,8 +4,7 @@ import sqlite3
 import re
 
 MIGRATIONS_DIR = '../sql'  # Pfad zu deinem Migrationsordner
-DB_FILE = '../data/data.db'  # oder dein tatsächlicher DB-Pfad
-
+DB_FILE = os.environ.get("DB_FILE", "../data/data.db")
 # Verzeichnis sicherstellen
 os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
 
