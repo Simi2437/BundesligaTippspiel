@@ -1,9 +1,10 @@
 from nicegui import ui
 
 from services import auth_service
-from services.auth_service import SESSION_COOKIE
+from uielements.pagestructure import inner_page
 
 
+@inner_page("/login")
 def login_page():
     ui.label("Login")
     username = ui.input("Username")
@@ -15,6 +16,10 @@ def login_page():
         if result == "RESET_REQUIRED":
             ui.notify("🔁 Passwort muss neu gesetzt werden")
             ui.navigate.to(f"/config/reset_password?username={username.value}")
+            return
+
+        if result == "NOT_APPROVED":
+            ui.notify("🔒 Nutzer ist noch nicht freigeschaltet. Ein Administrator muss den Nutzer freischalten.")
             return
 
         if not result:
@@ -35,21 +40,6 @@ def login_page():
             ).classes("text-sm text-gray-700")
             ui.button("OK", on_click=dialog.close).props("color=primary")
 
+    ui.button("Noch kein Konto Registrieren", on_click=lambda: ui.navigate.to("/register"))
     # Button zum Öffnen
     ui.button("🔑 Passwort vergessen?", on_click=dialog.open).props("flat color=secondary")
-
-
-def register_page():
-    ui.label("Register")
-    email = ui.input("E-Mail")
-    username = ui.input("Username")
-    password = ui.input("Password", password=True)
-
-    def handle_register():
-        if auth_service.register(username.value, password.value, email.value):
-            ui.notify("Registration successful")
-            ui.navigate.to("/login")
-        else:
-            ui.notify("Username exists")
-
-    ui.button("Register", on_click=handle_register)

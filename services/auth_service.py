@@ -24,6 +24,10 @@ def login(username, password):
         # Trigger: Muss neues Passwort setzen
         return 'RESET_REQUIRED'
 
+    if not user['is_approved']:
+        # Trigger: Nutzer ist noch nicht freigeschaltet
+        return 'NOT_APPROVED'
+
     if hash_password(password) != user['password_hash']:
         return None
 
@@ -35,8 +39,17 @@ def logout():
     _session.pop(ui.context.session_id, None)
 
 
+
 def current_user():
-    return app.storage.user.get("user")
+    user = app.storage.user.get('user')
+    if not user:
+        return None
+
+    db_user = get_user_by_name(user["username"])
+    if db_user is None:
+        app.storage.user.clear()
+        return None
+    return db_user
 
 
 def register(username, password, email):

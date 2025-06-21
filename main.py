@@ -3,7 +3,8 @@ import os
 from fastapi import FastAPI
 from nicegui import ui, app
 
-from routes import home, auth, action_log
+from routes import *
+
 from routes.config import teams, spieltage, game, usermanagement, reset_password
 from routes.config.spieltage import init_spieltage
 from routes.game import tippen
@@ -19,21 +20,11 @@ def index():
     build_header()
     home.page()
 
-@ui.page("/login")
-def login():
-    build_header()
-    auth.login_page()
-
 @ui.page("/logout")
 def logout():
     app.storage.user.clear()
     ui.notify('Abgemeldet')
     ui.navigate.to('/')
-
-@ui.page("/register")
-def register():
-    build_header()
-    auth.register_page()
 
 @ui.page("/log")
 def show_log():
