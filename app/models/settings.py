@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from db.database import get_db
+from app.db.database import get_db
 
 
 def get_setting(key: str, default: str = None) -> str:

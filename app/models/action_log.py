@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from db.database import get_db
-from services.auth_service import current_user
+from app.db.database import get_db
+from app.services.auth_service import current_user
 
 def log_action(action: str, context: str = None):
     user = current_user()

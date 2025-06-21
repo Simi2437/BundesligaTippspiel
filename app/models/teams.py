@@ -1,4 +1,4 @@
-from db.database import get_db
+from app.db.database import get_db
 
 
 def create_team(name, short):

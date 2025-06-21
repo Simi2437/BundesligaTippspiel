@@ -1,8 +1,8 @@
 from nicegui import ui
 
-from models.teams import create_team, get_all_teams, update_team, delete_team
-from models.user import get_user_rights
-from services.auth_service import current_user
+from app.models.teams import create_team, get_all_teams, update_team, delete_team
+from app.models.user import get_user_rights
+from app.services.auth_service import current_user
 
 
 @ui.page("/config/teams")

@@ -1,7 +1,7 @@
 from nicegui import ui
 from datetime import datetime
 
-from models.settings import get_setting, set_setting
+from app.models.settings import get_setting, set_setting
 
 
 @ui.page("/config/game")

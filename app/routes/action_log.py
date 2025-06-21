@@ -1,8 +1,8 @@
 from nicegui import ui
 
-from db.database import get_db
-from models.user import get_user_rights
-from services.auth_service import current_user
+from app.db.database import get_db
+from app.models.user import get_user_rights
+from app.services.auth_service import current_user
 
 
 @ui.page("/log")

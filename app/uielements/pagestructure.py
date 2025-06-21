@@ -1,6 +1,6 @@
 from nicegui import ui
 
-from uielements.header import build_header
+from app.uielements.header import build_header
 
 
 def inner_page(path):

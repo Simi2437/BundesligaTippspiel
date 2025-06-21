@@ -2,10 +2,10 @@ from datetime import datetime
 
 from nicegui import ui
 
-from models.settings import get_setting, is_tipp_ende_passed
-from services.auth_service import current_user
-from models.spieltage import get_all_spieltage, get_spiele_by_spieltag
-from models.tipps import get_tipp, save_tipp
+from app.models.settings import get_setting, is_tipp_ende_passed
+from app.services.auth_service import current_user
+from app.models.spieltage import get_all_spieltage, get_spiele_by_spieltag
+from app.models.tipps import get_tipp, save_tipp
 
 
 @ui.page("/game/tippen")
@@ -56,6 +56,13 @@ def tippen():
                     if not tipp_abgabe_erlaubt:
                         tipp_gast.props("readonly")
                         tipp_gast.tooltip("Tippen ist nicht mehr möglich, da das Tippende erreicht ist.")
+
+                    def auto_speichern():
+                        save_tipp(user["id"], spiel["id"], tipp_heim.value, tipp_gast.value)
+                        ui.notify("Automatischer Tipp gespeichert")
+
+                    tipp_heim.on("change", auto_speichern)
+                    tipp_gast.on("change", auto_speichern)
 
                     def speichern(s_id=spiel["id"], th=tipp_heim, tg=tipp_gast):
                         save_tipp(user["id"], s_id, th.value, tg.value)

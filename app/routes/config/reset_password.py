@@ -1,8 +1,7 @@
 from nicegui import ui
 from starlette.requests import Request
 
-from models import user
-from services import auth_service
+from app.services import auth_service
 
 
 @ui.page("/config/reset_password")

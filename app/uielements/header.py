@@ -1,7 +1,7 @@
 from nicegui import ui
 
-from models.user import get_user_rights
-from services.auth_service import current_user, logout
+from app.models.user import get_user_rights
+from app.services.auth_service import current_user
 
 
 def build_header():

@@ -1,8 +1,8 @@
 from nicegui import ui
 
-from models.tipps import get_tipp_statistik
-from models.user import get_user_rights
-from services.auth_service import logout, current_user
+from app.models.tipps import get_tipp_statistik
+from app.models.user import get_user_rights
+from app.services.auth_service import current_user
 
 
 def page():

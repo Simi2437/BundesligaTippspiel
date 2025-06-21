@@ -3,15 +3,12 @@ import os
 from fastapi import FastAPI
 from nicegui import ui, app
 
-from routes import *
+from app.routes import *
 
-from routes.config import teams, spieltage, game, usermanagement, reset_password
-from routes.config.spieltage import init_spieltage
-from routes.game import tippen
-
-from uielements.header import build_header
-
-
+from app.routes.config import usermanagement, teams, game, spieltage
+from app.routes.config.spieltage import init_spieltage
+from app.routes.game import tippen
+from app.uielements.header import build_header
 
 init_spieltage()
 

@@ -1,7 +1,7 @@
 from nicegui import ui
 
-from services import auth_service
-from uielements.pagestructure import inner_page
+from app.services import auth_service
+from app.uielements.pagestructure import inner_page
 
 
 @inner_page("/register")

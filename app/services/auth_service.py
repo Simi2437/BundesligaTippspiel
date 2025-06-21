@@ -1,9 +1,8 @@
 import hashlib
-import uuid
 
 from nicegui import ui, app
 
-from models.user import create_user, get_user_by_name, set_user_password
+from app.models.user import create_user, get_user_by_name, set_user_password
 
 _session = {}
 

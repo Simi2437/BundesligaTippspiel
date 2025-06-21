@@ -1,6 +1,6 @@
 import sqlite3
 
-from db.database import get_db
+from app.db.database import get_db
 
 
 def user_count():

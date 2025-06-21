@@ -1,6 +1,6 @@
 import sqlite3
 
-from db.migrator import run_migrations_from_dir, DB_FILE
+from app.db.migrator import run_migrations_from_dir, DB_FILE
 
 run_migrations_from_dir()
 

@@ -1,7 +1,6 @@
 from nicegui import ui
 
-from models.user import get_all_users, get_user_rights, set_user_rights, reset_user_password_to_null, set_user_approval
-from services import auth_service
+from app.models.user import get_all_users, get_user_rights, set_user_rights, reset_user_password_to_null, set_user_approval
 
 AVAILABLE_RIGHTS = ['admin']
 
