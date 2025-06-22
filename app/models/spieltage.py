@@ -37,3 +37,54 @@ def delete_spiel(spiel_id):
     conn = get_db()
     conn.execute('DELETE FROM spiele WHERE id = ?', (spiel_id,))
     conn.commit()
+
+def get_tipps_by_spieltag(spieltag_id):
+    rows = get_db().execute('''
+        SELECT 
+            u.username,
+            s.id AS spiel_id,
+            t1.name AS heim,
+            t2.name AS gast,
+            tp.tipp_heim,
+            tp.tipp_gast
+        FROM tipps tp
+        JOIN users u ON tp.user_id = u.id
+        JOIN spiele s ON tp.spiel_id = s.id
+        JOIN teams t1 ON s.heim_id = t1.id
+        JOIN teams t2 ON s.gast_id = t2.id
+        WHERE s.spieltag_id = ?
+        ORDER BY u.username, s.id
+    ''', (spieltag_id,)).fetchall()
+
+    return [{
+        'username': r[0],
+        'spiel_id': r[1],
+        'heim': r[2],
+        'gast': r[3],
+        'tipp_heim': r[4],
+        'tipp_gast': r[5],
+    } for r in rows]
+
+def get_tipps_for_user_by_spieltag(spieltag_id: int, user_id: int):
+    rows = get_db().execute('''
+        SELECT
+            s.id AS spiel_id,
+            t1.name AS heim,
+            t2.name AS gast,
+            tp.tipp_heim,
+            tp.tipp_gast
+        FROM spiele s
+        JOIN teams t1 ON s.heim_id = t1.id
+        JOIN teams t2 ON s.gast_id = t2.id
+        LEFT JOIN tipps tp ON tp.spiel_id = s.id AND tp.user_id = ?
+        WHERE s.spieltag_id = ?
+        ORDER BY s.id
+    ''', (user_id, spieltag_id)).fetchall()
+
+    return [{
+        'spiel_id': r[0],
+        'heim': r[1],
+        'gast': r[2],
+        'tipp_heim': r[3],
+        'tipp_gast': r[4],
+    } for r in rows]

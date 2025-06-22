@@ -48,4 +48,6 @@ def page():
         ui.button('📅 Konfiguration Spieltage', on_click=lambda: ui.navigate.to('/config/spieltage'))
         ui.button("📅 Konfiguration Spiel", on_click=lambda: ui.navigate.to("/config/game"))
         ui.button('📄 LOG anzeigen', on_click=lambda: ui.navigate.to('/log'))
+        ui.item("👥 Konfiguration Benutzer", on_click=lambda: ui.navigate.to("/config/users")).props(
+            "flat")
 
