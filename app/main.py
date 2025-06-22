@@ -1,5 +1,7 @@
 import os
 
+import uvicorn
+
 from fastapi import FastAPI
 from nicegui import ui, app
 
@@ -62,9 +64,15 @@ def config_users():
 
 REL_PATH = os.environ.get("REL_PATH", "")
 
+print("🟢 Start main.py")
+
 if REL_PATH:
+    print(f"🌐 Starte unter REL_PATH={REL_PATH}")
     sub_app = FastAPI()
     app.mount(REL_PATH, sub_app)  # mount die App unter /tippspiel
-    ui.run_with(sub_app, title='Tippspiel', storage_secret='geheim', reload=False)
+    ui.run_with(sub_app, title='Tippspiel', storage_secret='geheim')
+    
+    uvicorn.run(sub_app, host='0.0.0.0', port=8080)
 else:
+    print("🌐 Starte Standalone unter /")
     ui.run(title='Tippspiel', storage_secret='geheim', reload=False)

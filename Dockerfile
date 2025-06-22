@@ -16,8 +16,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app app
 COPY sql sql
 
+ENV PYTHONPATH=/app
+
 # Port für NiceGUI
 EXPOSE 8080
 
 # Startbefehl
-CMD ["python", "main.py"]
+CMD ["python", "app/main.py"]
