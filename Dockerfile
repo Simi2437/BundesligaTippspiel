@@ -13,7 +13,8 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY app app
+COPY sql sql
 
 # Port für NiceGUI
 EXPOSE 8080
