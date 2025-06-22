@@ -18,8 +18,10 @@ def build_header():
                 with ui.list().classes('w-full'):
                     ui.button("🏠 Home", on_click=lambda: ui.navigate.to("/")).props("flat")
                     ui.item("🔢 Tippen", on_click=lambda: ui.navigate.to("/game/tippen")).props("flat")
+                    ui.button('📊 Übersicht', on_click=lambda: ui.navigate.to('/uebersicht')).props('flat')
                     ui.item("🚪 Logout", on_click=lambda: ui.navigate.to("/logout")).props("flat")
-                    ui.item("🧑‍💻 Registrieren", on_click=lambda: ui.navigate.to("/register")).props("flat")
+                    if user["username"] == "Unknown User":
+                        ui.item("🧑‍💻 Registrieren", on_click=lambda: ui.navigate.to("/register")).props("flat")
                     if "id" in user and "admin" in get_user_rights(user["id"]):
                         #ui.item("⚙️ Admin", on_click=lambda: ui.navigate.to("/admin")).props("flat")
                         ui.item("📋 Konfiguration Teams", on_click=lambda: ui.navigate.to("/config/teams")).props("flat")

@@ -14,8 +14,9 @@ def page():
         return
     ui.label(f"Willkommen {user['username']}")
     ui.button('🔢 Tippen', on_click=lambda: ui.navigate.to('/game/tippen'))
+    ui.button('📊 Übersicht', on_click=lambda: ui.navigate.to('/uebersicht'))
     ui.button('🚪 Logout', on_click=lambda: ui.navigate.to('/logout'))
-    ui.button('🧑‍💻 Registrieren', on_click=lambda: ui.navigate.to('/register'))
+    #ui.button('🧑‍💻 Registrieren', on_click=lambda: ui.navigate.to('/register'))
 
 
     getippt, offen = get_tipp_statistik(user['id'])
@@ -48,6 +49,5 @@ def page():
         ui.button('📅 Konfiguration Spieltage', on_click=lambda: ui.navigate.to('/config/spieltage'))
         ui.button("📅 Konfiguration Spiel", on_click=lambda: ui.navigate.to("/config/game"))
         ui.button('📄 LOG anzeigen', on_click=lambda: ui.navigate.to('/log'))
-        ui.item("👥 Konfiguration Benutzer", on_click=lambda: ui.navigate.to("/config/users")).props(
-            "flat")
+        ui.item("👥 Konfiguration Benutzer", on_click=lambda: ui.navigate.to("/config/users"))
 
