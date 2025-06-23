@@ -31,8 +31,8 @@ def kommentator_admin():
         response_output.set_text("⏳ Kommentator denkt nach...")
         def run():
             try:
-                # response_output.set_text(kommentator_admin_commando(prompt, kontext_input.value))
-                response_output.set_text("Test message")
+                response_output.set_text(kommentator_admin_commando(prompt, kontext_input.value))
+                #response_output.set_text("Test message")
             except:
                 pass
             finally:
