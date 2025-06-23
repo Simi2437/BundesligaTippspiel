@@ -2,4 +2,6 @@
 .nicegui
 data
 
+
+docker-compose.yml
 app.db

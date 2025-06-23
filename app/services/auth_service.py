@@ -2,7 +2,7 @@ import hashlib
 
 from nicegui import ui, app
 
-from app.models.user import create_user, get_user_by_name, set_user_password
+from app.models.user import create_user, get_user_by_name, set_user_password, get_user_rights
 
 _session = {}
 
@@ -49,6 +49,14 @@ def current_user():
         app.storage.user.clear()
         return None
     return db_user
+
+def is_admin_user():
+    user = current_user()
+    if not user or "admin" not in get_user_rights(user["id"]):
+        ui.notify("Kein Zugriff")
+        ui.navigate.to("/")
+        return False
+    return True
 
 
 def register(username, password, email):

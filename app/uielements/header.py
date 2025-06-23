@@ -32,6 +32,8 @@ def build_header():
                         ui.item('📄 LOG anzeigen', on_click=lambda: ui.navigate.to('/log'))
                         ui.item("👥 Konfiguration Benutzer", on_click=lambda: ui.navigate.to("/config/users")).props(
                             "flat")
+                        ui.item("💬 Kommentator anweisen", on_click=lambda: ui.navigate.to("/admin/kommentator")).props(
+                            "flat")
 
             ui.button(icon="menu").props("flat round dense").classes("text-white").on(
                 "click", lambda e: nav_menu.open()

@@ -7,6 +7,7 @@ from .config import spieltage
 from .config import usermanagement
 from .config import reset_password
 from .game import tippen
+from .kommentator import kommentator_admin
 from .game import show_tipps
 from . import action_log
 from . import home

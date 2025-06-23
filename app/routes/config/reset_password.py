@@ -2,10 +2,14 @@ from nicegui import ui
 from starlette.requests import Request
 
 from app.services import auth_service
+from app.services.auth_service import is_admin_user
 
 
 @ui.page("/config/reset_password")
 def reset_password_page(request: Request):
+    if not is_admin_user():
+        ui.notify("Zugriff verweigert")
+        return
     username = request.query_params.get('username', '')
 
     ui.label('🔁 Neues Passwort vergeben')

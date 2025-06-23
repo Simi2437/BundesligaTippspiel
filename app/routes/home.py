@@ -50,4 +50,5 @@ def page():
         ui.button("📅 Konfiguration Spiel", on_click=lambda: ui.navigate.to("/config/game"))
         ui.button('📄 LOG anzeigen', on_click=lambda: ui.navigate.to('/log'))
         ui.button("👥 Konfiguration Benutzer", on_click=lambda: ui.navigate.to("/config/users"))
+        ui.button("💬 Kommentator anweisen", on_click=lambda: ui.navigate.to("/admin/kommentator"))
 

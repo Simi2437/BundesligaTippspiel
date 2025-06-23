@@ -5,7 +5,7 @@ from app.models.spieltage import get_all_spieltage, get_spiele_by_spieltag, add_
 from app.models.teams import get_all_teams
 from app.models.tipps import count_tipps_for_spiel
 from app.models.user import get_user_rights
-from app.services.auth_service import current_user
+from app.services.auth_service import current_user, is_admin_user
 
 
 def init_spieltage():
@@ -20,9 +20,8 @@ def init_spieltage():
 @ui.page("/config/spieltage")
 def config_spieltage():
     user = current_user()
-    if not user or "admin" not in get_user_rights(user["id"]):
-        ui.notify("Kein Zugriff")
-        ui.navigate.to("/")
+    if not is_admin_user():
+        ui.notify("Zugriff verweigert")
         return
 
     ui.label("📅 Spieltage verwalten")

@@ -1,11 +1,15 @@
 from nicegui import ui
 
 from app.models.user import get_all_users, get_user_rights, set_user_rights, reset_user_password_to_null, set_user_approval
+from app.services.auth_service import is_admin_user
 
 AVAILABLE_RIGHTS = ['admin']
 
 @ui.page("/config/users")
 def config_users():
+    if not is_admin_user():
+        ui.notify("Zugriff verweigert")
+        return
     ui.label("🔧 Benutzerverwaltung").classes('text-2xl mb-4')
 
     for user in get_all_users():

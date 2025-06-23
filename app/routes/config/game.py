@@ -2,10 +2,14 @@ from nicegui import ui
 from datetime import datetime
 
 from app.models.settings import get_setting, set_setting
+from app.services.auth_service import is_admin_user
 
 
 @ui.page("/config/game")
 def config_game():
+    if not is_admin_user():
+        ui.notify("Zugriff verweigert")
+        return
     with ui.column().classes('w-full max-w-xl m-auto mt-8 gap-4'):
         ui.label('🛠️ Spielkonfiguration').classes('text-2xl mb-4')
 

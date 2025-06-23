@@ -10,8 +10,8 @@ def user_count():
 
 
 def get_all_users():
-    rows = get_db().execute("SELECT id, username, is_approved FROM users").fetchall()
-    return [{"id": r[0], "username": r[1], "is_approved": r[2]} for r in rows]
+    rows = get_db().execute("SELECT id, username, is_approved, email FROM users").fetchall()
+    return [{"id": r[0], "username": r[1], "is_approved": r[2], "email": r[3]} for r in rows]
 
 
 def create_user(username, password_hash, email):
