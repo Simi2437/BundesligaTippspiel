@@ -22,6 +22,7 @@ def kommentator_admin():
     response_output = ui.label("").classes("text-lg mt-4")
 
     def send_prompt():
+        print("Send Prompt button pressed")
         button.disable()
         prompt = input_field.value.strip()
         if not prompt:
