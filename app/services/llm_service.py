@@ -12,7 +12,7 @@ groq_api_key = os.environ.get("GROQ_API_KEY", None)
 def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str):
     if not groq_api_key:
         return "KEIN APIKEY"
-
+    print("Trying to reach the api.")
     full_prompt = f"""
     Du bist 'Der Kommentator' für ein Bundesliga-Tippspiel. 
     Dein Stil: ironisch, witzig, gerne etwas frech – aber nicht beleidigend oder komplett ausfallend. 
@@ -36,6 +36,7 @@ def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str):
         },
         timeout=60
     )
+    print("Got response")
     return response.json()["choices"][0]["message"]["content"].strip()
 
 def create_user_context():
