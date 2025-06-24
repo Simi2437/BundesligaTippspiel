@@ -5,11 +5,11 @@ from nicegui import ui
 from app.services.auth_service import is_admin_user
 from app.services.llm_service import kommentator_admin_commando, create_user_context
 from app.services.mail_service import send_email_to_all_users
+from app.uielements.pagestructure import inner_page
 
 executor = ThreadPoolExecutor(max_workers=2)
 
-
-@ui.page("/admin/kommentator")
+@inner_page("/admin/kommentator")
 def kommentator_admin():
     if not is_admin_user():
         ui.notify("Zugriff verweigert")
