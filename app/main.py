@@ -15,9 +15,11 @@ from app.backend.uielements.header import build_header
 from app.openligadb.db.migrator_openligadb import run_oldb_migrations_from_dir
 from app.openligadb.services.importer import import_matches
 
-import_matches()
 run_migrations_from_dir()
 run_oldb_migrations_from_dir()
+
+import_matches()
+
 
 @ui.page("/")
 def index():
