@@ -48,8 +48,7 @@ CREATE TABLE IF NOT EXISTS match_results (
     FOREIGN KEY (match_id) REFERENCES matches(id)
 );
 
-
 CREATE TABLE IF NOT EXISTS sync_meta (
     key TEXT PRIMARY KEY,
     value TEXT
-)
+);
