@@ -30,7 +30,7 @@ class OpenLigaImportError(Exception):
 
 def import_matches():
 
-    if is_sync_due(minutes=120):
+    if not is_sync_due(minutes=120):
         return
 
     try:
