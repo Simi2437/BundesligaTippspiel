@@ -5,15 +5,19 @@ import uvicorn
 from fastapi import FastAPI
 from nicegui import ui, app
 
+from app.backend.db.migrator_backend import run_migrations_from_dir
 from app.backend.routes import *
 
 from app.backend.routes.config import game, teams, usermanagement, spieltage
 from app.backend.routes.config.spieltage import init_spieltage
 from app.backend.routes.game import tippen
 from app.backend.uielements.header import build_header
+from app.openligadb.db.migrator_openligadb import run_oldb_migrations_from_dir
 from app.openligadb.services.importer import import_matches
 
 import_matches()
+run_migrations_from_dir()
+run_oldb_migrations_from_dir()
 
 @ui.page("/")
 def index():

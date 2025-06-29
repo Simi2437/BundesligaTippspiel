@@ -125,4 +125,4 @@ def import_matches():
     conn.commit()
     now = datetime.now(timezone.utc).isoformat()
     conn.execute('REPLACE INTO sync_meta (key, value) VALUES (?, ?)', ('last_sync', now))
-    conn.close()
+    conn.commit()

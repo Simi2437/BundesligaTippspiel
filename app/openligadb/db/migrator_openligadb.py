@@ -15,7 +15,7 @@ OLDB_DB_FILE = os.environ.get("OLDB_DB_FILE", os.path.normpath(os.path.join(BASE
 os.makedirs(os.path.dirname(OLDB_DB_FILE), exist_ok=True)
 
 
-def run_migrations_from_dir():
+def run_oldb_migrations_from_dir():
     conn = sqlite3.connect(OLDB_DB_FILE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
