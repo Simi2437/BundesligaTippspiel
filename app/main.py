@@ -5,14 +5,15 @@ import uvicorn
 from fastapi import FastAPI
 from nicegui import ui, app
 
-from app.routes import *
+from app.backend.routes import *
 
-from app.routes.config import usermanagement, teams, game, spieltage
-from app.routes.config.spieltage import init_spieltage
-from app.routes.game import tippen
-from app.uielements.header import build_header
+from app.backend.routes.config import game, teams, usermanagement, spieltage
+from app.backend.routes.config.spieltage import init_spieltage
+from app.backend.routes.game import tippen
+from app.backend.uielements.header import build_header
+from app.openligadb.services.importer import import_matches
 
-init_spieltage()
+import_matches()
 
 @ui.page("/")
 def index():
@@ -49,11 +50,6 @@ def config_teams():
 def tipps():
     build_header()
     tippen.tippen()
-
-# @ui.page("/config/reset_password")
-# def reset_password_func():
-#     build_header()
-#     reset_password.reset_password_page()
 
 @ui.page("/config/users")
 def config_users():
