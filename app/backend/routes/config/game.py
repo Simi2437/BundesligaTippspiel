@@ -1,3 +1,5 @@
+from zoneinfo import ZoneInfo
+
 from nicegui import ui
 from datetime import datetime, timezone
 
@@ -6,10 +8,15 @@ from app.backend.services.auth_service import is_admin_user
 
 
 @ui.page("/config/game")
-def config_game():
+async def config_game():
     if not is_admin_user():
         ui.notify("Zugriff verweigert")
         return
+
+    await ui.context.client.connected()
+    timezone_str = await ui.run_javascript("Intl.DateTimeFormat().resolvedOptions().timeZone")
+    browser_tz = ZoneInfo(timezone_str or "UTC")
+
     with ui.column().classes('w-full max-w-xl m-auto mt-8 gap-4'):
         ui.label('🛠️ Spielkonfiguration').classes('text-2xl mb-4')
 
@@ -18,10 +25,10 @@ def config_game():
         # Hole bestehendes Datum/Zeit
         tipp_ende_str = get_setting('tipp_ende')
         try:
-            tipp_dt = datetime.fromisoformat(tipp_ende_str) if tipp_ende_str else datetime.now()
-            tipp_dt_locale = tipp_dt.astimezone()
+            tipp_dt = datetime.fromisoformat(tipp_ende_str) if tipp_ende_str else datetime.now(browser_tz)
+            tipp_dt_locale = tipp_dt.astimezone(browser_tz)
         except Exception:
-            tipp_dt_locale = datetime.now()
+            tipp_dt_locale = datetime.now(browser_tz)
 
         ui.label('⏰ Tippende konfigurieren').classes('text-lg font-bold mt-4')
         ui.label('Bis zu diesem Zeitpunkt dürfen Tipps abgegeben werden.').classes('text-sm text-gray-600')
@@ -33,7 +40,7 @@ def config_game():
             time_obj = datetime.strptime(tipp_uhrzeit.value, '%H:%M').time()
             locale_combined = datetime.combine(date_obj, time_obj)
 
-            local_dt = locale_combined.astimezone()
+            local_dt = locale_combined.astimezone(browser_tz)
             utc_dt = local_dt.astimezone(timezone.utc)
 
             set_setting('saison_name', saison_name_input.value)

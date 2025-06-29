@@ -42,20 +42,20 @@ def config_teams():
     build_header()
     teams.config_teams_page()
 
-@ui.page("/config/game")
-def config_game():
-    build_header()
-    game.config_game()
+# @ui.page("/config/game")
+# def config_game():
+#     build_header()
+#     game.config_game()
 
 @ui.page("/config/spieltage")
 def config_teams():
     build_header()
     spieltage.config_spieltage()
 
-@ui.page("/game/tippen")
-def tipps():
-    build_header()
-    tippen.tippen()
+# @ui.page("/game/tippen")
+# async def tipps():
+#     build_header()
+#     tippen.tippen()
 
 @ui.page("/config/users")
 def config_users():

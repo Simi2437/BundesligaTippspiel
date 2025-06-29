@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from nicegui import ui
 
@@ -7,14 +8,21 @@ from app.backend.services.auth_service import current_user
 from app.backend.models.tipps import get_tipp, save_tipp
 from app.backend.services.external_game_data.game_data_provider import spiel_service
 
+async def get_user_timezone() -> str:
+    tz = await ui.run_javascript("Intl.DateTimeFormat().resolvedOptions().timeZone")
+    return tz or 'UTC'
 
 @ui.page("/game/tippen")
-def tippen():
+async def tippen():
     user = current_user()
     if not user:
         ui.notify("Nicht eingeloggt")
         ui.navigate.to("/")
         return
+    await ui.context.client.connected()  # sicherstellen, dass wir mit dem Client reden können
+
+    timezone_str = await ui.run_javascript("Intl.DateTimeFormat().resolvedOptions().timeZone")
+    browser_tz = ZoneInfo(timezone_str or "UTC")
 
     tipp_abgabe_erlaubt = not is_tipp_ende_passed()
 
@@ -25,12 +33,13 @@ def tippen():
         if tipp_ende_str:
             try:
                 tipp_ende = datetime.fromisoformat(tipp_ende_str)
-                tipp_ende_str_local = tipp_ende.astimezone()
-                ui.label(f'Tippende: {tipp_ende_str_local.strftime("%d.%m.%Y %H:%M")}').classes("text-sm text-gray-600")
+                tipp_ende_local = tipp_ende.astimezone(browser_tz)
+                ui.label(f'Tippende: {tipp_ende_local.strftime("%d.%m.%Y %H:%M")} ({timezone_str})').classes("text-sm text-gray-600")
             except Exception:
                 ui.label("⚠️ Tippende-Format ungültig").classes("text-sm text-red-500")
         else:
             ui.label("⚠️ Admin muss Tippende konfigurieren").classes("text-sm text-orange-600")
+
 
     # 🔄 NEU: Spieltage und Spiele über Service laden
     for spieltag in spiel_service.get_spieltage():
