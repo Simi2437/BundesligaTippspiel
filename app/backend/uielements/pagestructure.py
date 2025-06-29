@@ -13,3 +13,14 @@ def inner_page(path):
             build_header()
             return func()
     return decorator
+
+def inner_page_async(path):
+    """
+    Decorator to define a page with a specific path.
+    """
+    def decorator(func):
+        @ui.page(path)
+        async def wrapper():
+            build_header()
+            return await func()
+    return decorator

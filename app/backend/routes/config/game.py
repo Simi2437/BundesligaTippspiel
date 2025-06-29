@@ -5,9 +5,10 @@ from datetime import datetime, timezone
 
 from app.backend.models.settings import get_setting, set_setting
 from app.backend.services.auth_service import is_admin_user
+from app.backend.uielements.pagestructure import inner_page_async
 
 
-@ui.page("/config/game")
+@inner_page_async("/config/game")
 async def config_game():
     if not is_admin_user():
         ui.notify("Zugriff verweigert")

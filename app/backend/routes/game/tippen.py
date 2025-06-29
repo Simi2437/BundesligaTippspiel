@@ -7,12 +7,14 @@ from app.backend.models.settings import get_setting, is_tipp_ende_passed
 from app.backend.services.auth_service import current_user
 from app.backend.models.tipps import get_tipp, save_tipp
 from app.backend.services.external_game_data.game_data_provider import spiel_service
+from app.backend.uielements.pagestructure import inner_page, inner_page_async
+
 
 async def get_user_timezone() -> str:
     tz = await ui.run_javascript("Intl.DateTimeFormat().resolvedOptions().timeZone")
     return tz or 'UTC'
 
-@ui.page("/game/tippen")
+@inner_page_async("/game/tippen")
 async def tippen():
     user = current_user()
     if not user:
