@@ -26,3 +26,7 @@ class BaseGameDataService(ABC):
     @abstractmethod
     def get_anzahl_spiele(self) -> int:
         raise NotImplementedError
+
+    @abstractmethod
+    def get_erstes_match_datum(self) -> str:
+        raise NotImplementedError

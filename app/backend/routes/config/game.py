@@ -1,5 +1,5 @@
 from nicegui import ui
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.backend.models.settings import get_setting, set_setting
 from app.backend.services.auth_service import is_admin_user
@@ -19,21 +19,25 @@ def config_game():
         tipp_ende_str = get_setting('tipp_ende')
         try:
             tipp_dt = datetime.fromisoformat(tipp_ende_str) if tipp_ende_str else datetime.now()
+            tipp_dt_locale = tipp_dt.astimezone()
         except Exception:
-            tipp_dt = datetime.now()
+            tipp_dt_locale = datetime.now()
 
         ui.label('⏰ Tippende konfigurieren').classes('text-lg font-bold mt-4')
         ui.label('Bis zu diesem Zeitpunkt dürfen Tipps abgegeben werden.').classes('text-sm text-gray-600')
-        tipp_datum = ui.date(value=tipp_dt.date()).props('label=Tipp-Ende (Datum)')
-        tipp_uhrzeit = ui.time(value=tipp_dt.time()).props('label=Tipp-Ende (Uhrzeit)')
+        tipp_datum = ui.date(value=tipp_dt_locale.date()).props('label=Tipp-Ende (Datum)')
+        tipp_uhrzeit = ui.time(value=tipp_dt_locale.time()).props('label=Tipp-Ende (Uhrzeit)')
 
         def speichern():
             date_obj = datetime.strptime(tipp_datum.value, '%Y-%m-%d').date()
             time_obj = datetime.strptime(tipp_uhrzeit.value, '%H:%M').time()
-            combined = datetime.combine(date_obj, time_obj)
+            locale_combined = datetime.combine(date_obj, time_obj)
+
+            local_dt = locale_combined.astimezone()
+            utc_dt = local_dt.astimezone(timezone.utc)
 
             set_setting('saison_name', saison_name_input.value)
-            set_setting('tipp_ende', combined.isoformat())
+            set_setting('tipp_ende', utc_dt.isoformat())
             ui.notify('✅ Einstellungen gespeichert')
 
         ui.button('💾 Speichern', on_click=speichern)

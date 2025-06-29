@@ -25,7 +25,8 @@ def tippen():
         if tipp_ende_str:
             try:
                 tipp_ende = datetime.fromisoformat(tipp_ende_str)
-                ui.label(f'Tippende: {tipp_ende.strftime("%d.%m.%Y %H:%M")}').classes("text-sm text-gray-600")
+                tipp_ende_str_local = tipp_ende.astimezone()
+                ui.label(f'Tippende: {tipp_ende_str_local.strftime("%d.%m.%Y %H:%M")}').classes("text-sm text-gray-600")
             except Exception:
                 ui.label("⚠️ Tippende-Format ungültig").classes("text-sm text-red-500")
         else:

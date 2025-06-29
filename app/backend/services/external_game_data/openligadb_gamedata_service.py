@@ -52,3 +52,8 @@ class OpenLigaGameDataService(BaseGameDataService):
         conn = get_oldb()
         result = conn.execute('SELECT COUNT(*) FROM matches').fetchone()[0]
         return result
+
+    def get_erstes_match_datum(self) -> str:
+        conn = get_oldb()
+        row = conn.execute("SELECT MIN(match_date_utc) AS first_match FROM matches").fetchone()
+        return row["first_match"] if row and row["first_match"] else None

@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.backend.db.database_backend import get_db
+from app.backend.services.external_game_data.game_data_provider import spiel_service
 
 
 def get_setting(key: str, default: str = None) -> str:
@@ -14,10 +15,18 @@ def set_setting(key: str, value: str):
 
 def is_tipp_ende_passed() -> bool:
     tipp_ende_str = get_setting('tipp_ende')
+
     if not tipp_ende_str:
-        return False  # Kein Datum gesetzt = immer offen
+        # automatisches Initial-Setzen beim ersten Aufruf
+        first_match = spiel_service.get_erstes_match_datum()
+        if first_match:
+            tipp_ende_str = first_match.replace("Z", "+00:00")
+            set_setting("tipp_ende", tipp_ende_str)
+        else:
+            return False  # Keine Spiele, kein Ende
+
     try:
         tipp_ende = datetime.fromisoformat(tipp_ende_str)
-        return datetime.now() > tipp_ende
+        return datetime.now(timezone.utc) > tipp_ende
     except Exception:
-        return False  # Bei Parsing-Fehler lieber offen lassen
+        return False  # Bei Fehler = Tipp offen
