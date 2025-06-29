@@ -8,7 +8,7 @@ import app
 BASE_DIR = Path(app.__file__).parent
 
 OLDB_MIGRATIONS_DIR = os.environ.get(
-    "MIGRATION_FILES_FOLDER", os.path.normpath(os.path.join(BASE_DIR, "..", "sql","openligadb"))
+    "OLDB_MIGRATIONS_DIR", os.path.normpath(os.path.join(BASE_DIR, "..", "sql","openligadb"))
 )  # Pfad zu deinem Migrationsordner
 OLDB_DB_FILE = os.environ.get("OLDB_DB_FILE", os.path.normpath(os.path.join(BASE_DIR, ".." ,"data", "oldbdata.db")))
 # Verzeichnis sicherstellen
