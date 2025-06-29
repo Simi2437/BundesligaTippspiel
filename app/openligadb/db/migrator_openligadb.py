@@ -7,13 +7,14 @@ import app
 
 BASE_DIR = Path(app.__file__).parent
 
-MIGRATIONS_DIR = os.environ.get(
+OLDB_MIGRATIONS_DIR = os.environ.get(
     "MIGRATION_FILES_FOLDER", os.path.normpath(os.path.join(BASE_DIR, "..", "sql","openligadb"))
 )  # Pfad zu deinem Migrationsordner
 OLDB_DB_FILE = os.environ.get("OLDB_DB_FILE", os.path.normpath(os.path.join(BASE_DIR, ".." ,"data", "oldbdata.db")))
 # Verzeichnis sicherstellen
 os.makedirs(os.path.dirname(OLDB_DB_FILE), exist_ok=True)
 
+print(f"📂 Using migration dir: {OLDB_MIGRATIONS_DIR}")
 
 def run_oldb_migrations_from_dir():
     conn = sqlite3.connect(OLDB_DB_FILE)
@@ -35,7 +36,7 @@ def run_oldb_migrations_from_dir():
     # Alle bereits angewendeten Migrationen abrufen
     applied = {row["version"] for row in cursor.execute("SELECT version FROM migrations")}
     # Alle Migrationsdateien lesen
-    migration_files = sorted([f for f in os.listdir(MIGRATIONS_DIR) if re.match(r"^V\d{4}_.*\.sql$", f)])
+    migration_files = sorted([f for f in os.listdir(OLDB_MIGRATIONS_DIR) if re.match(r"^V\d{4}_.*\.sql$", f)])
 
     for filename in migration_files:
         version = filename.split("_")[0][1:]  # z. B. aus V0001_... → '0001'
@@ -44,7 +45,7 @@ def run_oldb_migrations_from_dir():
             continue  # bereits angewendet
 
         print(f"Aktiviere Migration: {filename}")
-        with open(os.path.join(MIGRATIONS_DIR, filename), encoding="utf-8") as file:
+        with open(os.path.join(OLDB_MIGRATIONS_DIR, filename), encoding="utf-8") as file:
             sql = file.read()
             try:
                 cursor.executescript(sql)
