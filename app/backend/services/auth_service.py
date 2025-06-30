@@ -37,7 +37,9 @@ def login(username, password):
 def logout():
     _session.pop(ui.context.session_id, None)
 
-
+def has_no_password_set(username: str) -> bool:
+    user = get_user_by_name(username)
+    return user is not None and user['password_hash'] is None
 
 def current_user():
     user = app.storage.user.get('user')
