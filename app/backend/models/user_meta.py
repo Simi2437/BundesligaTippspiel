@@ -1,3 +1,4 @@
+import sqlite3
 from datetime import datetime
 
 from app.backend.db.database_backend import get_db
@@ -24,6 +25,7 @@ REMINDER_KEY = "LAST_REMINDER_SENT"
 
 def get_last_reminder_timestamp():
     db = get_db()
+    db.row_factory = sqlite3.Row
     row = db.execute("SELECT value FROM sync_meta WHERE key = ?", (REMINDER_KEY,)).fetchone()
     if row:
         return datetime.fromisoformat(row["value"])
