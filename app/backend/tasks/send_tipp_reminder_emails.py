@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from app.backend.models.settings import get_days_until_tippende
-from app.backend.models.user_meta import get_last_reminder_timestamp
+from app.backend.models.user_meta import get_last_reminder_timestamp, set_last_reminder_timestamp
 from app.backend.services.llm_service import kommentator_admin_commando, create_user_context, create_tipp_user_context
 from app.backend.services.mail_service import send_email_to_all_users
 
@@ -26,6 +26,7 @@ def versende_kommentator_tipp_reminder():
             print(f"Letzter Reminder (adjusted) war am {adjusted_last_sent}, noch keine 3 Tage vergangen.")
             return
 
+    set_last_reminder_timestamp()
 
     days_left = get_days_until_tippende()
 
