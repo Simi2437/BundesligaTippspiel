@@ -35,7 +35,7 @@ def get_wall_of_shame_title(quote: float) -> str:
 @inner_page("/stats/wall_of_shame")
 def wall_of_shame():
 
-    ui.label("🧱 Wall of Shame – Wer tippt am wenigsten?").classes("text-2xl font-bold mb-4")
+    ui.label("🧱 Wall of Shame – Wer ist der faulste Tipper?").classes("text-2xl font-bold mb-4")
 
     stats = []
     all_users = get_all_users()

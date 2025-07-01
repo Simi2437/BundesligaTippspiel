@@ -2,6 +2,7 @@ import sqlite3
 from typing import List, Dict
 
 from app.backend.db.database_backend import get_db
+from app.backend.models.settings import get_setting
 from app.backend.services.external_game_data.game_data_provider import spiel_service
 from app.openligadb.db.database_openligadb import get_oldb
 

@@ -30,3 +30,17 @@ def is_tipp_ende_passed() -> bool:
         return datetime.now(timezone.utc) > tipp_ende
     except Exception:
         return False  # Bei Fehler = Tipp offen
+
+
+
+def get_days_until_tippende() -> int:
+    tipp_ende_str = get_setting("tipp_ende")
+    if not tipp_ende_str:
+        return -1  # oder None / 0 je nachdem
+    try:
+        tipp_ende = datetime.fromisoformat(tipp_ende_str).astimezone(timezone.utc)
+        now = datetime.now(timezone.utc)
+        delta = tipp_ende - now
+        return max(delta.days, 0)
+    except Exception as e:
+        return -1

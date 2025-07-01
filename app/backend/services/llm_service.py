@@ -2,6 +2,7 @@ import os
 
 import requests
 
+from app.backend.models.tipps import get_tipp_statistik
 from app.backend.models.user import get_all_users
 
 # OLLAMA_BASE_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
@@ -9,11 +10,11 @@ from app.backend.models.user import get_all_users
 groq_api_key = os.environ.get("GROQ_API_KEY", None)
 
 
-def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str):
+def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str, custom_system_prompt: str | None = None):
     if not groq_api_key:
         return "KEIN APIKEY"
     print("Trying to reach the api.")
-    full_prompt = f"""
+    full_prompt = custom_system_prompt or f"""
     Du bist 'Der Kommentator' für ein Bundesliga-Tippspiel. 
     Dein Stil: frech, ironisch, manchmal sarkastisch – aber immer charmant. 
     Du darfst sticheln, Seitenhiebe verteilen, überfällige Tipps anprangern und mit Augenzwinkern motivieren. 
@@ -57,7 +58,22 @@ def create_user_context():
     return "Diese Teilnehmer sind aktuell im Tippspiel:\n" + "\n".join(beschreibungen)
 
 
+def create_tipp_user_context():
+    users = get_all_users()
+    if not users:
+        return "Es sind keine Teilnehmer im Tippspiel registriert."
 
+    beschreibungen = []
+
+    for user in users:
+        getippt, offen = get_tipp_statistik(user["id"])
+        gesamt = getippt + offen
+        quote = (getippt / gesamt * 100) if gesamt else 0
+        beschreibungen.append(f'{user["username"]} hat {getippt} von {gesamt} Spielen getippt ({quote:.1f}%)')
+
+    beschreibungen.sort(key=lambda s: float(s.split("(")[-1].replace("%)", "")))
+
+    return "\n".join(beschreibungen)
 
     # r = requests.post(
     #     f"{OLLAMA_BASE_URL}/api/generate",

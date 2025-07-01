@@ -1,4 +1,7 @@
+import asyncio
 import os
+import threading
+import time
 
 import uvicorn
 
@@ -11,6 +14,7 @@ from app.backend.routes import *
 from app.backend.routes.config import game, teams, usermanagement, spieltage
 from app.backend.routes.config.spieltage import init_spieltage
 from app.backend.routes.game import tippen
+from app.backend.tasks.send_tipp_reminder_emails import versende_kommentator_tipp_reminder
 from app.backend.uielements.header import build_header
 from app.openligadb.db.migrator_openligadb import run_oldb_migrations_from_dir
 from app.openligadb.services.importer import import_matches
@@ -20,6 +24,14 @@ run_oldb_migrations_from_dir()
 
 import_matches()
 
+
+
+def reminder_loop():
+    while True:
+        versende_kommentator_tipp_reminder()
+        time.sleep(60 * 60 * 24)  # run once per day
+
+threading.Thread(target=reminder_loop, daemon=True).start()
 
 @ui.page("/")
 def index():
@@ -42,20 +54,10 @@ def config_teams():
     build_header()
     teams.config_teams_page()
 
-# @ui.page("/config/game")
-# def config_game():
-#     build_header()
-#     game.config_game()
-
 @ui.page("/config/spieltage")
 def config_teams():
     build_header()
     spieltage.config_spieltage()
-
-# @ui.page("/game/tippen")
-# async def tipps():
-#     build_header()
-#     tippen.tippen()
 
 @ui.page("/config/users")
 def config_users():
