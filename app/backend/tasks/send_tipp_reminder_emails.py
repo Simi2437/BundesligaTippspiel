@@ -16,7 +16,7 @@ def was_last_sent_arround(time):
 def versende_kommentator_tipp_reminder():
     if not ist_morgens():
         print("Nicht im Morgen-Zeitfenster. Reminder wird nicht gesendet.")
-        pass
+        return
 
     now = datetime.now()
     last_sent = get_last_reminder_timestamp()
