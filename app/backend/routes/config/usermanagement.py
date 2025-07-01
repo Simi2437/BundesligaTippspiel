@@ -1,6 +1,7 @@
 from nicegui import ui
 
-from app.backend.models.user import get_all_users, get_user_rights, set_user_rights, reset_user_password_to_null, set_user_approval
+from app.backend.models.user import get_all_users, get_user_rights, set_user_rights, reset_user_password_to_null, \
+    set_user_approval, delete_user_by_id
 from app.backend.services.auth_service import is_admin_user
 
 AVAILABLE_RIGHTS = ['admin']
@@ -32,6 +33,25 @@ def config_users():
                 set_user_rights(u['id'], selected)
                 set_user_approval(u['id'], approval_cb.value)
                 ui.notify(f'✅ Rechte für {u["username"]} gespeichert')
+
+            def confirm_delete(u=user):
+                with ui.dialog() as dialog:
+                    with ui.card().classes('w-full max-w-md'):
+                        ui.label(f"❗ Benutzer '{u['username']}' wirklich löschen?")
+                        confirm_input = ui.input(label='Gib "delete" ein zur Bestätigung').props('outlined dense')
+                        with ui.row().classes("justify-end"):
+                            ui.button('Abbrechen', on_click=dialog.close)
+                            def really_delete():
+                                if confirm_input.value.strip().lower() == 'delete':
+                                    delete_user_by_id(u['id'])
+                                    ui.notify(f"🗑️ Benutzer {u['username']} gelöscht.")
+                                    ui.run_javascript('location.reload()')
+                                else:
+                                    ui.notify('❌ Falsche Bestätigung. Tippe exakt "delete".')
+                            ui.button('Löschen', color='red', on_click=really_delete)
+                dialog.open()
+
+            ui.button('🗑️ Benutzer löschen', on_click=confirm_delete).props('flat').classes('text-red-600')
 
             ui.button('💾 Rechte speichern', on_click=speichern).props('flat').classes('text-blue')
 

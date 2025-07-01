@@ -99,3 +99,9 @@ def set_user_password(username: str, password_hash: str):
     # password_hash = hash_password(password)
     get_db().execute("UPDATE users SET password_hash = ? WHERE username = ?", (password_hash, username))
     get_db().commit()
+
+
+def delete_user_by_id(user_id: int):
+    db = get_db()
+    db.execute('DELETE FROM users WHERE id = ? and is_approved = 0', (user_id,))
+    db.commit()

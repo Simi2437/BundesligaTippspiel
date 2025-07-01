@@ -12,6 +12,15 @@ def register_page():
     password = ui.input("Password", password=True)
 
     def handle_register():
+        if not username.value.strip():
+            ui.notify("❌ Bitte einen Benutzernamen angeben.")
+            return
+        if not password.value.strip():
+            ui.notify("❌ Bitte ein Passwort angeben.")
+            return
+        if not email.value.strip():
+            ui.notify("❌ Bitte eine E-Mail-Adresse angeben. Sonst bekommst du nix mit.")
+            return
         if auth_service.register(username.value, password.value, email.value):
             ui.notify("Registration successful")
             ui.navigate.to("/login")
