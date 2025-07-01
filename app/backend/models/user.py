@@ -46,6 +46,12 @@ def get_user_by_name(username):
     row = cur.fetchone()
     return {"id": row[0], "username": row[1], "password_hash": row[2], "is_approved": row[3]} if row else None
 
+def get_user_by_id(user_id):
+    conn = get_db()
+    cur = conn.execute("SELECT id, username, password_hash, is_approved FROM users WHERE id = ?", (user_id,))
+    row = cur.fetchone()
+    return {"id": row[0], "username": row[1], "password_hash": row[2], "is_approved": row[3]} if row else None
+
 
 def get_user_rights(user_id: int) -> list:
     conn = get_db()

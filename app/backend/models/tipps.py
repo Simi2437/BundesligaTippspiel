@@ -27,11 +27,15 @@ def save_tipp(user_id, spiel_id, heim, gast):
 def get_tipp_statistik(user_id):
     conn = get_db()
     total = spiel_service.get_anzahl_spiele()
+    total_sonder = 5
     getippt = conn.execute(
         'SELECT COUNT(*) FROM tipps WHERE user_id = ? AND datenquelle = ?',
         (user_id, DATA_SOURCE)
     ).fetchone()[0]
-    return getippt, total - getippt
+    getippt_sonder = conn.execute(
+        "SELECT COUNT(*) from tipp_sonder ts where ts.user_id = ? and ts.kategorie = 'Platzierung'", [user_id]
+    ).fetchone()[0]
+    return getippt + getippt_sonder, (total + total_sonder) - (getippt + getippt_sonder)
 
 def count_tipps_for_spiel(spiel_id: int) -> int:
     db = get_db()
@@ -95,4 +99,16 @@ def get_tipps_for_user_by_spieltag(spieltag_id: int, user_id: int, datenquelle: 
     """
     params = [user_id, datenquelle] + match_ids
     cursor = db.execute(query, params)
+    return [dict(row) for row in cursor.fetchall()]
+
+def get_all_tipp_statistiken() -> List[dict]:
+    db = get_db()
+    db.row_factory = sqlite3.Row
+    cursor = db.execute('''
+        SELECT user_id,
+               SUM(CASE WHEN tipp_heim IS NOT NULL AND tipp_gast IS NOT NULL THEN 1 ELSE 0 END) AS getippt,
+               SUM(CASE WHEN tipp_heim IS NULL OR tipp_gast IS NULL THEN 1 ELSE 0 END) AS offen
+        FROM tipps
+        GROUP BY user_id
+    ''')
     return [dict(row) for row in cursor.fetchall()]

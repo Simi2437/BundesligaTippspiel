@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from nicegui import ui
 
 from app.backend.models.settings import get_setting, is_tipp_ende_passed
+from app.backend.models.sondertipps import get_aktuelle_saison, save_sondertipp, get_sondertipps
 from app.backend.services.auth_service import current_user
 from app.backend.models.tipps import get_tipp, save_tipp
 from app.backend.services.external_game_data.game_data_provider import spiel_service
@@ -91,3 +92,52 @@ async def tippen():
                         ui.button("💾", on_click=speichern_func(spiel["id"], tipp_heim, tipp_gast)).props(
                             "flat" + ("" if tipp_abgabe_erlaubt else " disable")
                         ).classes("text-green").tooltip(tooltip_text)
+
+    # 🔽 Zusatztipps: Platzierungen & Absteiger
+    saison = get_aktuelle_saison()
+    sondertipp_data = get_sondertipps(user["id"], saison)
+
+    # In dict umwandeln für einfachen Zugriff
+    from collections import defaultdict
+    tipps_by_kat = defaultdict(dict)
+    for eintrag in sondertipp_data:
+        tipps_by_kat[eintrag.get("kategorie", "Meisterschaft")][eintrag["platz"]] = eintrag["team_id"]
+
+    if tipp_abgabe_erlaubt:
+        with ui.card().classes("w-full my-3"):
+            ui.label("🏆 Sondertipps – Saisonprognose").classes("text-lg font-bold")
+
+            alle_teams = spiel_service.get_alle_teams()
+            team_id_to_name = {team["id"]: team["name"] for team in alle_teams}
+            team_name_to_id = {team["name"]: team["id"] for team in alle_teams}
+            team_options = [team["name"] for team in alle_teams]
+
+            def dropdown_tippfeld(label, kategorie, platz):
+                initial_id = tipps_by_kat.get(kategorie, {}).get(platz, None)
+                choosen_val = None
+                if initial_id:
+                    choosen_val = team_id_to_name[initial_id]
+                with ui.row().classes("items-center gap-4"):
+                    ui.label(f"Platz: {platz}.").classes("w-20 text-right")
+                    dropdown = ui.select(
+                        options=team_options,
+                        value=choosen_val,
+                        label=label
+                    ).props("outlined")
+
+                def save_dropdown_tipp():
+                    selected_team_name = dropdown.value
+                    if selected_team_name:
+                        save_sondertipp(user["id"], saison, kategorie, platz, team_name_to_id[selected_team_name])
+                        ui.notify(f'{label} gespeichert')
+
+                dropdown.on_value_change(save_dropdown_tipp)
+
+            # Dropdowns erzeugen
+            for kategorie, plaetze in [('Platzierung', [1, 2, 3,len(alle_teams)-1, len(alle_teams)])]:
+                ui.label(f"{kategorie}").classes("text-md mt-2")
+                for platz in plaetze:
+                    dropdown_tippfeld(f'{kategorie} Platz {platz}', kategorie, platz)
+
+
+

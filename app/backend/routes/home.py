@@ -16,6 +16,7 @@ def page():
     ui.button('🔢 Tippen', on_click=lambda: ui.navigate.to('/game/tippen'))
     ui.button('📊 Übersicht', on_click=lambda: ui.navigate.to('/uebersicht'))
     ui.button('🚪 Logout', on_click=lambda: ui.navigate.to('/logout'))
+    ui.button('💩 Wall of Shame', on_click=lambda: ui.navigate.to('/stats/wall_of_shame'))
     #ui.button('🧑‍💻 Registrieren', on_click=lambda: ui.navigate.to('/register'))
 
 

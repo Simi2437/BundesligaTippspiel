@@ -9,5 +9,6 @@ from .config import reset_password
 from .game import tippen
 from .kommentator import kommentator_admin
 from .game import show_tipps
+from .game import wall_of_shame
 from . import action_log
 from . import home

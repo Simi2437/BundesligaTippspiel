@@ -16,9 +16,10 @@ def build_header():
             nav_menu = ui.menu().props('anchor="bottom right" self="top right"')
             with nav_menu:
                 with ui.list().classes('w-full'):
-                    ui.button("🏠 Home", on_click=lambda: ui.navigate.to("/")).props("flat")
+                    ui.item("🏠 Home", on_click=lambda: ui.navigate.to("/")).props("flat")
                     ui.item("🔢 Tippen", on_click=lambda: ui.navigate.to("/game/tippen")).props("flat")
-                    ui.button('📊 Übersicht', on_click=lambda: ui.navigate.to('/uebersicht')).props('flat')
+                    ui.item('📊 Übersicht', on_click=lambda: ui.navigate.to('/uebersicht')).props('flat')
+                    ui.item('💩 Wall of Shame', on_click=lambda: ui.navigate.to('/stats/wall_of_shame'))
                     ui.item("🚪 Logout", on_click=lambda: ui.navigate.to("/logout")).props("flat")
                     if user["username"] == "Unknown User":
                         ui.item("🧑‍💻 Registrieren", on_click=lambda: ui.navigate.to("/register")).props("flat")

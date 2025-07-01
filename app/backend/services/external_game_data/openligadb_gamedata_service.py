@@ -57,3 +57,8 @@ class OpenLigaGameDataService(BaseGameDataService):
         conn = get_oldb()
         row = conn.execute("SELECT MIN(match_date_utc) AS first_match FROM matches").fetchone()
         return row["first_match"] if row and row["first_match"] else None
+
+    def get_alle_teams(self) -> list[dict]:
+        conn = get_oldb()
+        cursor = conn.execute('SELECT id, name FROM teams ORDER BY name')
+        return [dict(row) for row in cursor.fetchall()]

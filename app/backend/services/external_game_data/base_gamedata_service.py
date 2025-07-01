@@ -30,3 +30,7 @@ class BaseGameDataService(ABC):
     @abstractmethod
     def get_erstes_match_datum(self) -> str:
         raise NotImplementedError
+
+    @abstractmethod
+    def get_alle_teams(self) -> list[dict]:
+        raise NotImplementedError
