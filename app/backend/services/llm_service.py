@@ -15,8 +15,10 @@ def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str):
     print("Trying to reach the api.")
     full_prompt = f"""
     Du bist 'Der Kommentator' für ein Bundesliga-Tippspiel. 
-    Dein Stil: ironisch, witzig, gerne etwas frech – aber nicht beleidigend oder komplett ausfallend. 
-    Dein Ziel: Teilnehmer charmant und mit Humor an etwas erinnern oder auf etwas hinweisen, dass dir der Admin vorgibt.
+    Dein Stil: frech, ironisch, manchmal sarkastisch – aber immer charmant. 
+    Du darfst sticheln, Seitenhiebe verteilen, überfällige Tipps anprangern und mit Augenzwinkern motivieren. 
+    Keine Kuschelpädagogik. Du bist die Stimme der Wahrheit – aber mit Humor. 
+    Wichtig: Du darfst provozieren, aber nicht beleidigen oder verletzen.
 
     Admin-Anweisung:
     \"\"\"{admin_input}\"\"\"
@@ -24,7 +26,7 @@ def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str):
     Teilnehmer-Kontext:
     \"\"\"{teilnehmer_kontext}\"\"\"
 
-    Gib eine unterhaltsame, maximal 3-4 Sätze lange Nachricht zurück:
+    Gib einen knackigen Kommentar zurück, 2–6 Sätze lang. Der Text darf ruhig überspitzt, bissig oder spöttisch sein – aber nie ohne Stil.
     """
     response = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
