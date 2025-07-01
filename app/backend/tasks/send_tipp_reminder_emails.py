@@ -44,6 +44,7 @@ def versende_kommentator_tipp_reminder():
         "Werde vor allem bei denen deutlicher, die kaum getippt haben. "
         "Du darfst humorvoll, ironisch und ein bisschen frech sein – "
         "aber bleibe respektvoll und unterhaltsam. Max. 3-4 Sätze."
+        "Auf deutsch."
     )
     text = kommentator_admin_commando(prompt, kontext)
     return send_email_to_all_users(text)
