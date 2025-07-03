@@ -9,6 +9,7 @@ services:
       - REL_PATH=/tippspiel
       - DB_FILE=/data/data.db
       - MIGRATION_FILES_FOLDER=/app/sql
+      - TZ=Europe/Berlin
 #      - MAIL_PASSWORD=your_password_here
 #      - GROQ_API_KEY=your_api_key_here
     restart: unless-stopped

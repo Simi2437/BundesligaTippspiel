@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.backend.models.settings import get_days_until_tippende
 from app.backend.models.user_meta import get_last_reminder_timestamp, set_last_reminder_timestamp
@@ -41,7 +41,7 @@ def versende_kommentator_tipp_reminder():
     kontext = create_tipp_user_context()  # enthält Statistiken, z. B. Tippquote pro User
     prompt = (
         f"{dringlichkeit}"
-        "Erinnere die Teilnehmer des Bundesliga-Tippspiels ans Tippen. "
+        "Erinnere die Teilnehmer des Bundesliga-Tippspiels ans Tippen und wielang man noch tippen kann. "
         "Werde vor allem bei denen deutlicher, die kaum getippt haben. "
         "Du darfst humorvoll, ironisch und ein bisschen frech sein – "
         "aber bleibe respektvoll und unterhaltsam. Max. 3-4 Sätze."

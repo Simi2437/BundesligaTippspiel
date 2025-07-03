@@ -34,7 +34,7 @@ def send_email_to_all_users(text: str):
     sent = 0
     failed = 0
 
-    message = f"{text.strip()}\n{footer}"
+    message = f"{text.strip()}"
 
     for user in users:
         email = user.get("email")
