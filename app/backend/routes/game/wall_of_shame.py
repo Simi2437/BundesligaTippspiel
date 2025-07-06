@@ -1,6 +1,6 @@
 from nicegui import ui
 
-from app.backend.models.tipps import get_all_tipp_statistiken, get_tipp_statistik
+from app.backend.models.tipps import get_all_tipp_statistiken, get_tipp_statistik, get_enhanced_tipp_statistik
 from app.backend.models.user import get_user_by_id, get_all_users
 from app.backend.services.auth_service import is_admin_user
 from app.backend.uielements.pagestructure import inner_page
@@ -42,10 +42,14 @@ def wall_of_shame():
 
     for user in all_users:
         getippt, offen = get_tipp_statistik(user['id'])
+        enhanced_stats = get_enhanced_tipp_statistik(user['id'])
         stats.append(
             {"user_id":user["id"],
              "getippt": getippt,
              "offen": offen,
+            'unentschieden': enhanced_stats['unentschieden'],
+            'diff1': enhanced_stats['tor_diff_1'],
+            'diffX': enhanced_stats['tor_diff_gt_1'],
              }
         )
 
@@ -60,7 +64,10 @@ def wall_of_shame():
             'getippt': stat['getippt'],
             'offen': stat['offen'],
             'quote': f"{quote}%",
-            'spruch': spruch
+            'spruch': spruch,
+            'unentschieden': stat['unentschieden'],
+            'diff1': stat['diff1'],
+            'diffX': stat['diffX'],
         })
 
     ui.table(columns=[
@@ -69,4 +76,7 @@ def wall_of_shame():
         {'name': 'getippt', 'label': 'Getippt', 'field': 'getippt'},
         {'name': 'offen', 'label': 'Offen', 'field': 'offen'},
         {'name': 'quote', 'label': 'Tippquote', 'field': 'quote'},
+        {'name': 'unentschieden', 'label': 'Unentschieden', 'field': 'unentschieden'},
+        {'name': 'diff1', 'label': 'Tor diff 1', 'field': 'diff1'},
+        {'name': 'diffX', 'label': 'Tor diff größer 1', 'field': 'diffX'},
     ], rows=rows).classes("w-full")

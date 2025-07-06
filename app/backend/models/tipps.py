@@ -46,6 +46,30 @@ def count_tipps_for_spiel(spiel_id: int) -> int:
     ).fetchone()
     return result[0] if result else 0
 
+def get_enhanced_tipp_statistik(user_id: int) -> dict:
+    db = get_db()
+    db.row_factory = sqlite3.Row
+    cursor = db.execute('''
+        SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN tipp_heim IS NULL OR tipp_gast IS NULL THEN 1 ELSE 0 END) AS offen,
+            SUM(CASE WHEN tipp_heim = tipp_gast THEN 1 ELSE 0 END) AS unentschieden,
+            SUM(CASE WHEN ABS(tipp_heim - tipp_gast) = 1 THEN 1 ELSE 0 END) AS tor_diff_1,
+            SUM(CASE WHEN ABS(tipp_heim - tipp_gast) > 1 THEN 1 ELSE 0 END) AS tor_diff_gt_1
+        FROM tipps
+        WHERE user_id = ?
+    ''', (user_id,))
+
+    row = cursor.fetchone()
+
+    return {
+        'getippt': row['total'] - row['offen'],
+        'offen': row['offen'],
+        'unentschieden': row['unentschieden'],
+        'tor_diff_1': row['tor_diff_1'],
+        'tor_diff_gt_1': row['tor_diff_gt_1'],
+    }
+
 
 def get_tipps_for_spieltag(spieltag_id: int, datenquelle: str):
     # Schritt 1: Match-IDs aus OpenLigaDB holen
