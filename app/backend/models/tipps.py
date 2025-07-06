@@ -61,13 +61,20 @@ def get_enhanced_tipp_statistik(user_id: int) -> dict:
     ''', (user_id,))
 
     row = cursor.fetchone()
-
+    if row['total'] is not None and row['total'] is not None:
+        return {
+            'getippt': row['total'] - row['offen'],
+            'offen': row['offen'],
+            'unentschieden': row['unentschieden'],
+            'tor_diff_1': row['tor_diff_1'],
+            'tor_diff_gt_1': row['tor_diff_gt_1'],
+        }
     return {
-        'getippt': row['total'] - row['offen'],
-        'offen': row['offen'],
-        'unentschieden': row['unentschieden'],
-        'tor_diff_1': row['tor_diff_1'],
-        'tor_diff_gt_1': row['tor_diff_gt_1'],
+        'getippt': 0,
+        'offen': 0,
+        'unentschieden': 0,
+        'tor_diff_1': 0,
+        'tor_diff_gt_1': 0,
     }
 
 
