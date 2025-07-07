@@ -44,12 +44,11 @@ def versende_kommentator_tipp_reminder():
 
     kontext = create_tipp_user_context()  # enthält Statistiken, z. B. Tippquote pro User
     prompt = (
-        f"{dringlichkeit}"
-        "Erinnere die Teilnehmer des Bundesliga-Tippspiels ans Tippen und wielang man noch tippen kann. "
-        "Werde vor allem bei denen deutlicher, die kaum getippt haben. "
-        "Du darfst humorvoll, ironisch und ein bisschen frech sein – "
-        "aber bleibe respektvoll und unterhaltsam. Max. 3-4 Sätze."
-        "Auf deutsch."
+        f"Beginne mit den schlimmsten Faulpelzen – nenne sie beim Namen und stichle mit Humor. "
+        f"Sei ironisch, sarkastisch und gnadenlos ehrlich – aber niemals beleidigend. "
+        f"Je weniger getippt wurde, desto härter darf der Seitenhieb sein. "
+        f"Erinnere am Ende daran, dass nur noch {days_left} Tage zum Tippen bleiben. "
+        f"Max. 4 Sätze. Kein Gelaber – direkt, pointiert, bissig."
     )
     text = kommentator_admin_commando(prompt, kontext)
     return send_email_to_all_users(text)
