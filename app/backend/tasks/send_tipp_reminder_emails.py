@@ -43,6 +43,9 @@ def versende_kommentator_tipp_reminder():
         dringlichkeit = f"Nur noch {days_left} Tage bis zum Tippende! "
 
     kontext = create_tipp_user_context()  # enthält Statistiken, z. B. Tippquote pro User
+    print("Kontext für Kommentator erstellt:")
+    print(kontext)
+    print("---------------------")
     prompt = (
         f"Beginne mit den schlimmsten Faulpelzen – nenne sie beim Namen und stichle mit Humor. "
         f"Sei ironisch, sarkastisch und gnadenlos ehrlich – aber niemals beleidigend. "
