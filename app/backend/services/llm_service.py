@@ -39,8 +39,22 @@ def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str, custom
         },
         timeout=60
     )
-    print("Got response")
-    return response.json()["choices"][0]["message"]["content"].strip()
+    if response.ok:
+        try:
+            data = response.json()
+            return data["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            print("⚠️ JSON-Parsing fehlgeschlagen trotz erfolgreichem Statuscode.")
+            print(f"Status Code: {response.status_code}")
+            print("Raw Response:")
+            print(response.text)
+            raise e
+    else:
+        print("❌ Fehlerhafte Antwort vom LLM:")
+        print(f"Status Code: {response.status_code}")
+        print("Response Body:")
+        print(response.text)
+        raise Exception(f"Groq API-Fehler: Status {response.status_code}")
 
 def create_user_context():
     users = get_all_users()

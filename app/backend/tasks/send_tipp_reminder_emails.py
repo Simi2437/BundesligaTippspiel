@@ -25,8 +25,8 @@ def versende_kommentator_tipp_reminder():
 
     if not ist_morgens():
         print("Nicht im Morgen-Zeitfenster. Reminder wird nicht gesendet.")
-        if abs(now - last_sent) > timedelta(days=4):
-            print(f"Letzter Reminder war am {last_sent}, mehr als 3 Tage her. Reminder wird trotzdem gesendet.")
+        if not last_sent or abs(now - last_sent) > timedelta(days=4):
+            print(f"Letzter Reminder war am {last_sent or 'Nie'}, mehr als 3 Tage her. Reminder wird trotzdem gesendet.")
         else:
             return
 

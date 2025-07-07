@@ -39,3 +39,8 @@ def set_last_reminder_timestamp():
         (REMINDER_KEY, timestamp),
     )
     db.commit()
+
+def reset_last_reminder_timestamp():
+    db = get_db()
+    db.execute("DELETE FROM sync_meta WHERE key = ?", (REMINDER_KEY,))
+    db.commit()

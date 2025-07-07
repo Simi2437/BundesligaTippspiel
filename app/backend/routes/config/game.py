@@ -4,6 +4,7 @@ from nicegui import ui
 from datetime import datetime, timezone
 
 from app.backend.models.settings import get_setting, set_setting
+from app.backend.models.user_meta import reset_last_reminder_timestamp, get_last_reminder_timestamp
 from app.backend.services.auth_service import is_admin_user
 from app.backend.uielements.pagestructure import inner_page_async
 
@@ -49,3 +50,12 @@ async def config_game():
             ui.notify('✅ Einstellungen gespeichert')
 
         ui.button('💾 Speichern', on_click=speichern)
+
+        ui.separator()
+
+        def reset_reminder():
+            reset_last_reminder_timestamp()
+
+        ui.label('🔔 Tipp-Erinnerung').classes('text-lg font-bold mt-4')
+        ui.label(f'🔄 Letzte Erinnerung war am: {get_last_reminder_timestamp() or "Nie"}')
+        ui.button('🔁 Letzte Erinnerung zurücksetzen', on_click=reset_reminder).props('color=red')
