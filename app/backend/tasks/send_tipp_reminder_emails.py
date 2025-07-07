@@ -14,9 +14,6 @@ def was_last_sent_arround(time):
     return 6 <= time.hour < 10
 
 def versende_kommentator_tipp_reminder():
-    if not ist_morgens():
-        print("Nicht im Morgen-Zeitfenster. Reminder wird nicht gesendet.")
-        return
 
     now = datetime.now()
     last_sent = get_last_reminder_timestamp()
@@ -24,6 +21,13 @@ def versende_kommentator_tipp_reminder():
         adjusted_last_sent = last_sent - timedelta(hours=12)
         if (now - adjusted_last_sent).days < 3:
             print(f"Letzter Reminder (adjusted) war am {adjusted_last_sent}, noch keine 3 Tage vergangen.")
+            return
+
+    if not ist_morgens():
+        print("Nicht im Morgen-Zeitfenster. Reminder wird nicht gesendet.")
+        if abs(now - last_sent) > timedelta(days=4):
+            print(f"Letzter Reminder war am {last_sent}, mehr als 3 Tage her. Reminder wird trotzdem gesendet.")
+        else:
             return
 
     set_last_reminder_timestamp()

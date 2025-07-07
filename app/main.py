@@ -29,7 +29,7 @@ import_matches()
 def reminder_loop():
     while True:
         versende_kommentator_tipp_reminder()
-        time.sleep(60 * 60 * 24)  # run once per day
+        time.sleep(60 * 60)  # run once per hour
 
 threading.Thread(target=reminder_loop, daemon=True).start()
 
