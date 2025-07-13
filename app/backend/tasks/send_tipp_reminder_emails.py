@@ -47,11 +47,12 @@ def versende_kommentator_tipp_reminder():
     print(kontext)
     print("---------------------")
     prompt = (
-        f"Beginne mit den schlimmsten Faulpelzen – nenne sie beim Namen und stichle mit Humor. "
-        f"Sei ironisch, sarkastisch und gnadenlos ehrlich – aber niemals beleidigend. "
-        f"Je weniger getippt wurde, desto härter darf der Seitenhieb sein. "
-        f"Erinnere am Ende daran, dass nur noch {days_left} Tage zum Tippen bleiben. "
-        f"Max. 4 Sätze. Kein Gelaber – direkt, pointiert, bissig."
+    f"Beginne mit den schlimmsten Faulpelzen – nenne sie beim Namen und stichle mit Humor. "
+    f"Sei ironisch, sarkastisch und gnadenlos ehrlich – aber niemals beleidigend. "
+    f"Je weniger getippt wurde, desto härter darf der Seitenhieb sein. "
+    f"Teilnehmer mit 100 % Tippquote sollst du loben oder auslassen – sie brauchen keine Erinnerung. "
+    f"Erinnere am Ende daran, dass nur noch {days_left} Tage zum Tippen bleiben. "
+    f"Max. 4 Sätze. Kein Gelaber – direkt, pointiert, bissig."
     )
     text = kommentator_admin_commando(prompt, kontext)
     return send_email_to_all_users(text)

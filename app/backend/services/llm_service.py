@@ -83,7 +83,7 @@ def create_tipp_user_context():
         getippt, offen = get_tipp_statistik(user["id"])
         gesamt = getippt + offen
         quote = (getippt / gesamt * 100) if gesamt else 0
-        beschreibungen.append(f'{user["username"]} hat {getippt} von {gesamt} Spielen getippt ({quote:.1f}%)')
+        beschreibungen.append(f'{user["username"]} hat {getippt} von {gesamt} Spielen getippt ({quote:.1f}%){" -> fertig getippt" if offen == 0 else ""}')
 
     beschreibungen.sort(key=lambda s: float(s.split("(")[-1].replace("%)", "")))
 
