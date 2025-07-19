@@ -77,15 +77,30 @@ def create_tipp_user_context():
     if not users:
         return "Es sind keine Teilnehmer im Tippspiel registriert."
 
-    beschreibungen = []
 
+    # Statistiken sammeln und Quote berechnen
+    user_stats = []
     for user in users:
         getippt, offen = get_tipp_statistik(user["id"])
         gesamt = getippt + offen
         quote = (getippt / gesamt * 100) if gesamt else 0
-        beschreibungen.append(f'{user["username"]} hat {getippt} von {gesamt} Spielen getippt ({quote:.1f}%){" -> fertig getippt" if offen == 0 else ""}')
+        user_stats.append({
+            "username": user["username"],
+            "getippt": getippt,
+            "gesamt": gesamt,
+            "offen": offen,
+            "quote": quote
+        })
 
-    beschreibungen.sort(key=lambda s: float(s.split("(")[-1].replace("%)", "")))
+    # Nach Quote sortieren (aufsteigend)
+    user_stats.sort(key=lambda u: u["quote"])
+
+    beschreibungen = []
+    for u in user_stats:
+        fertig = " -> fertig getippt" if u["offen"] == 0 else ""
+        beschreibungen.append(
+            f'{u["username"]} hat {u["getippt"]} von {u["gesamt"]} Spielen getippt ({u["quote"]:.1f}%)' + fertig
+        )
 
     return "\n".join(beschreibungen)
 
