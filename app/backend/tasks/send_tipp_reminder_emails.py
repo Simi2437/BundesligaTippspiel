@@ -30,7 +30,6 @@ def versende_kommentator_tipp_reminder():
         else:
             return
 
-    set_last_reminder_timestamp()
 
     days_left = get_days_until_tippende()
 
@@ -55,4 +54,6 @@ def versende_kommentator_tipp_reminder():
     f"Max. 4 Sätze. Kein Gelaber – direkt, pointiert, bissig."
     )
     text = kommentator_admin_commando(prompt, kontext)
-    return send_email_to_all_users(text)
+    return_info = send_email_to_all_users(text)
+    set_last_reminder_timestamp()
+    return return_info
