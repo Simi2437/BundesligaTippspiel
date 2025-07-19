@@ -2,6 +2,7 @@ import asyncio
 import os
 import threading
 import time
+import traceback
 
 import uvicorn
 
@@ -28,7 +29,11 @@ import_matches()
 
 def reminder_loop():
     while True:
-        versende_kommentator_tipp_reminder()
+        try:
+            versende_kommentator_tipp_reminder()
+        except Exception as e:
+            print(f"Fehler beim Senden der Tipp-Erinnerung: {e}")
+            traceback.print_exc()
         time.sleep(60 * 60)  # run once per hour
 
 threading.Thread(target=reminder_loop, daemon=True).start()
