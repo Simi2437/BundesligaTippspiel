@@ -55,5 +55,5 @@ def get_aktuelle_saison(shortcut: str = 'bl1') -> str:
         LIMIT 1
     ''', (shortcut,))
     row = cursor.fetchone()
-    return str(row['season']) if row else 'Unbekannt'
+    return str(row[0]) if row else 'Unbekannt'
 

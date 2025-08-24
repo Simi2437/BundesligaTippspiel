@@ -60,6 +60,7 @@ class OpenLigaGameDataService(BaseGameDataService):
 
     def get_alle_teams(self) -> list[dict]:
         conn = get_oldb()
+        conn.row_factory = sqlite3.Row
         cursor = conn.execute('SELECT id, name FROM teams ORDER BY name')
         return [dict(row) for row in cursor.fetchall()]
 
