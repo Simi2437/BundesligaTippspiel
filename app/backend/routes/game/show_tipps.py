@@ -32,29 +32,33 @@ def show_all_tipps():
 
             ui.label(f'Spieltag {spieltag["order_number"]}').classes("text-xl mt-6")
 
+            # Get all unique usernames for this spieltag
+            usernames = sorted({t["username"] for t in tipps})
+
+            # Build columns: first column is Spiel, then one per user
             columns = [
                 {"name": "spiel", "label": "Spiel", "field": "spiel", "align": "center"},
-                {"name": "benutzer", "label": "Benutzer", "field": "benutzer", "align": "center"},
-                {"name": "tipp_heim", "label": "Tipp Heim", "field": "tipp_heim", "align": "center"},
-                {"name": "tipp_gast", "label": "Tipp Gast", "field": "tipp_gast", "align": "center"},
+            ] + [
+                {"name": username, "label": username, "field": username, "align": "center"} for username in usernames
             ]
 
-            with ui.table(columns=columns, rows=[]).classes("w-full").props(
-                    'dense bordered separator="cell"'
-            ) as table:
-                for tipp in tipps:
-                    spiel = next((s for s in spiele if s["id"] == tipp["spiel_id"]), None)
-                    if not spiel:
-                        continue
+            # Build a lookup: (spiel_id, username) -> tipp
+            tipp_lookup = {}
+            for t in tipps:
+                tipp_lookup[(t["spiel_id"], t["username"])] = f'{t["tipp_heim"]}:{t["tipp_gast"]}' if t["tipp_heim"] is not None and t["tipp_gast"] is not None else "-"
 
-                    table.rows.append(
-                        {
-                            "spiel": f'{spiel["heim"]} vs {spiel["gast"]}',
-                            "benutzer": tipp["username"],
-                            "tipp_heim": tipp["tipp_heim"] if tipp["tipp_heim"] is not None else "",
-                            "tipp_gast": tipp["tipp_gast"] if tipp["tipp_gast"] is not None else "",
-                        }
-                    )
+            # Build rows: one per match
+            rows = []
+            for spiel in spiele:
+                row = {"spiel": f'{spiel["heim"]} vs {spiel["gast"]}'}
+                for username in usernames:
+                    row[username] = tipp_lookup.get((spiel["id"], username), "-")
+                rows.append(row)
+
+            with ui.table(columns=columns, rows=rows).classes("w-full").props(
+                    'dense bordered separator="cell"'
+            ):
+                pass
     else:
         ui.label("Deine Tippübersicht")
         ui.button("🖨️ Drucken", on_click=lambda: ui.run_javascript("window.print()"))\

@@ -34,7 +34,9 @@ def versende_kommentator_tipp_reminder():
     days_left = get_days_until_tippende()
 
     dringlichkeit = ""
-    if days_left == 0:
+    if days_left < 0 :
+        return
+    elif days_left == 0:
         dringlichkeit = "Heute ist die letzte Chance zu tippen! "
     elif days_left == 1:
         dringlichkeit = "Nur noch 1 Tag bis Tippende! "
