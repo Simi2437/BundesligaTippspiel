@@ -10,26 +10,37 @@ from app.backend.models.user import get_all_users
 groq_api_key = os.environ.get("GROQ_API_KEY", None)
 
 
+from app.backend.models.settings import is_tipp_ende_passed
+
+def get_dynamic_system_prompt():
+    if is_tipp_ende_passed():
+        return (
+            "Du bist der Kommentator für das Bundesliga-Tippspiel. "
+            "Die Tipp-Phase ist vorbei, jetzt laufen die Spiele und die Tabelle verändert sich. "
+            "Kommentiere die Leistungen, Punktestände und Ereignisse rund um das Tippspiel. "
+            "Folge immer der Admin-Anweisung."
+        )
+    else:
+        return (
+            "Du bist der Kommentator für das Bundesliga-Tippspiel. "
+            "Die Tipp-Phase läuft noch! Motivieren, sticheln, auf offene Tipps hinweisen. "
+            "Kommentiere die Leistungen, Punktestände und motiviere die Teilnehmer zum Tippen. "
+            "Folge immer der Admin-Anweisung."
+        )
+
 def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str, custom_system_prompt: str | None = None):
     if not groq_api_key:
         return "KEIN APIKEY"
     print("Trying to reach the api.")
-    # This is a generic prompt do your commands on admin input.
-    full_prompt = custom_system_prompt or f"""
-Du bist 'Der Kommentator' für eine Bundesliga-Tippspiel-Community.
-Dein Stil: frech, ironisch, manchmal sarkastisch – aber immer charmant.
-Du darfst sticheln, Seitenhiebe verteilen, mit Augenzwinkern motivieren und die Teilnehmer auf humorvolle Weise herausfordern.
-Keine Kuschelpädagogik. Du bist die Stimme der Wahrheit – aber mit Humor.
-Wichtig: Du darfst provozieren, aber nicht beleidigen oder verletzen.
-
-Admin-Anweisung:
-\"\"\"{admin_input}\"\"\"
-
-Teilnehmer-Kontext:
-\"\"\"{teilnehmer_kontext}\"\"\"
-
-Gib einen knackigen Kommentar zurück, 2–6 Sätze lang. Der Text darf ruhig überspitzt, bissig oder spöttisch sein – aber nie ohne Stil.
-"""
+    # Dynamischer System-Prompt, falls keiner übergeben wurde
+    if custom_system_prompt is None:
+        custom_system_prompt = get_dynamic_system_prompt()
+    full_prompt = (
+        f"{custom_system_prompt}\n\n"
+        f"Admin-Anweisung:\n\"\"\"{admin_input}\"\"\"\n\n"
+        f"Teilnehmer-Kontext:\n\"\"\"{teilnehmer_kontext}\"\"\"\n\n"
+        "Gib einen knackigen Kommentar zurück, 2–6 Sätze lang. Der Text darf ruhig überspitzt, bissig oder spöttisch sein – aber nie ohne Stil."
+    )
     response = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {groq_api_key}"},
@@ -56,6 +67,8 @@ Gib einen knackigen Kommentar zurück, 2–6 Sätze lang. Der Text darf ruhig ü
         print("Response Body:")
         print(response.text)
         raise Exception(f"Groq API-Fehler: Status {response.status_code}")
+
+
 
 def create_user_context():
     users = get_all_users()
