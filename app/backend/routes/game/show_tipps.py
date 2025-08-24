@@ -38,6 +38,7 @@ def show_all_tipps():
             # Build columns: first column is Spiel, then one per user
             columns = [
                 {"name": "spiel", "label": "Spiel", "field": "spiel", "align": "center"},
+                {"name": "result", "label": "Ergebnis", "field": "result", "align": "center"},
             ] + [
                 {"name": username, "label": username, "field": username, "align": "center"} for username in usernames
             ]
@@ -50,7 +51,11 @@ def show_all_tipps():
             # Build rows: one per match
             rows = []
             for spiel in spiele:
-                row = {"spiel": f'{spiel["heim"]} vs {spiel["gast"]}'}
+                result = spiel_service.get_final_result_for_match(spiel["id"])
+                row = {
+                    "spiel": f'{spiel["heim"]} vs {spiel["gast"]}',
+                    "result": result if result else "-"
+                }
                 for username in usernames:
                     row[username] = tipp_lookup.get((spiel["id"], username), "-")
                 rows.append(row)
@@ -74,6 +79,7 @@ def show_all_tipps():
             ui.label(f'Spieltag {spieltag["order_number"]}').classes("text-xl mt-6")
             columns = [
                 {"name": "spiel", "label": "Spiel", "field": "spiel", "align": "center"},
+                {"name": "result", "label": "Ergebnis", "field": "result", "align": "center"},
                 {"name": "benutzer", "label": "Benutzer", "field": "benutzer", "align": "center"},
                 {"name": "tipp_heim", "label": "Tipp Heim", "field": "tipp_heim", "align": "center"},
                 {"name": "tipp_gast", "label": "Tipp Gast", "field": "tipp_gast", "align": "center"},
@@ -87,9 +93,11 @@ def show_all_tipps():
                     if not spiel:
                         continue
 
+                    result = spiel_service.get_final_result_for_match(spiel["id"])
                     table.rows.append(
                         {
                             "spiel": f'{spiel["heim"]} vs {spiel["gast"]}',
+                            "result": result if result else "-",
                             "benutzer": user["username"],
                             "tipp_heim": tipp["tipp_heim"] if tipp["tipp_heim"] is not None else "",
                             "tipp_gast": tipp["tipp_gast"] if tipp["tipp_gast"] is not None else "",

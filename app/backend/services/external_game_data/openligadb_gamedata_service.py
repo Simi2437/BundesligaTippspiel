@@ -62,3 +62,19 @@ class OpenLigaGameDataService(BaseGameDataService):
         conn = get_oldb()
         cursor = conn.execute('SELECT id, name FROM teams ORDER BY name')
         return [dict(row) for row in cursor.fetchall()]
+
+    from typing import Optional
+    def get_final_result_for_match(self, match_id: int) -> Optional[str]:
+        conn = get_oldb()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.execute(
+            """
+            SELECT points_team1, points_team2 FROM match_results
+            WHERE match_id = ? AND result_type_id = 2
+            LIMIT 1
+            """, (match_id,)
+        )
+        row = cursor.fetchone()
+        if row and row["points_team1"] is not None and row["points_team2"] is not None:
+            return f"{row['points_team1']}:{row['points_team2']}"
+        return None
