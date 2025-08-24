@@ -38,16 +38,27 @@ async def config_game():
         tipp_uhrzeit = ui.time(value=tipp_dt_locale.time()).props('label=Tipp-Ende (Uhrzeit)')
 
         def speichern():
-            date_obj = datetime.strptime(tipp_datum.value, '%Y-%m-%d').date()
-            time_obj = datetime.strptime(tipp_uhrzeit.value, '%H:%M').time()
-            locale_combined = datetime.combine(date_obj, time_obj)
+            try:
+                # Robustly handle both string and object input
+                if isinstance(tipp_datum.value, str):
+                    date_obj = datetime.strptime(tipp_datum.value, '%Y-%m-%d').date()
+                else:
+                    date_obj = tipp_datum.value  # already a datetime.date
 
-            local_dt = locale_combined.astimezone(browser_tz)
-            utc_dt = local_dt.astimezone(timezone.utc)
+                if isinstance(tipp_uhrzeit.value, str):
+                    time_obj = datetime.strptime(tipp_uhrzeit.value, '%H:%M').time()
+                else:
+                    time_obj = tipp_uhrzeit.value  # already a datetime.time
 
-            set_setting('saison_name', saison_name_input.value)
-            set_setting('tipp_ende', utc_dt.isoformat())
-            ui.notify('✅ Einstellungen gespeichert')
+                naive_dt = datetime.combine(date_obj, time_obj)
+                aware_dt = naive_dt.replace(tzinfo=browser_tz)
+                utc_dt = aware_dt.astimezone(timezone.utc)
+
+                set_setting('saison_name', saison_name_input.value)
+                set_setting('tipp_ende', utc_dt.isoformat())
+                ui.notify('✅ Einstellungen gespeichert')
+            except Exception as e:
+                ui.notify(f'❌ Fehler beim Speichern: {e}')
 
         ui.button('💾 Speichern', on_click=speichern)
 
