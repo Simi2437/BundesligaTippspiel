@@ -38,6 +38,24 @@ def delete_spiel(spiel_id):
     conn.execute('DELETE FROM spiele WHERE id = ?', (spiel_id,))
     conn.commit()
 
+def is_spieltag_finished(spieltag_id: int) -> bool:
+    db = get_db()
+    total = db.execute('SELECT COUNT(*) FROM spiele WHERE spieltag_id = ?', (spieltag_id,)).fetchone()[0]
+    finished = db.execute('SELECT COUNT(*) FROM spiele WHERE spieltag_id = ? AND is_finished = 1', (spieltag_id,)).fetchone()[0]
+    return total > 0 and total == finished
+
+
+def get_highest_finished_spieltag():
+    db = get_db()
+    rows = db.execute('SELECT id, nummer FROM spieltage ORDER BY nummer DESC').fetchall()
+    for r in rows:
+        spieltag_id = r[0]
+        total = db.execute('SELECT COUNT(*) FROM spiele WHERE spieltag_id = ?', (spieltag_id,)).fetchone()[0]
+        finished = db.execute('SELECT COUNT(*) FROM spiele WHERE spieltag_id = ? AND is_finished = 1', (spieltag_id,)).fetchone()[0]
+        if total > 0 and total == finished:
+            return {'id': spieltag_id, 'nummer': r[1]}
+    return None
+
 # def get_tipps_by_spieltag(spieltag_id):
 #     rows = get_db().execute('''
 #         SELECT

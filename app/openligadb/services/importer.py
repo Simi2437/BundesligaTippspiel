@@ -28,8 +28,8 @@ def is_sync_due(minutes: int) -> bool:
 class OpenLigaImportError(Exception):
     pass
 
-def import_matches():
-    if not is_sync_due(minutes=120):
+def import_matches(force_import: bool = False):
+    if not force_import and not is_sync_due(minutes=120):
         return
 
     try:
@@ -44,6 +44,7 @@ def import_matches():
         raise OpenLigaImportError(f"Fehler beim Parsen des JSON: {e}")
 
     conn = get_oldb()
+    updated_spieltage = set()
     for match in data:
         # Only process finished matches
         if not match.get('matchIsFinished', False):
@@ -75,6 +76,8 @@ def import_matches():
         }
         team1 = match['team1']
         team2 = match['team2']
+
+        updated_spieltage.add(group['id'])
 
         conn.execute('INSERT OR IGNORE INTO leagues (id, shortcut, name, season) VALUES (?, ?, ?, ?)',
                      (league['id'], league['shortcut'], league['name'], league['season']))
@@ -128,8 +131,28 @@ def import_matches():
                 result.get('pointsTeam1'),
                 result.get('pointsTeam2')
             ))
+        # Update user points for this match
+        try:
+            from app.backend.models.tipps import aktualisiere_punkte_fuer_spiel
+            aktualisiere_punkte_fuer_spiel(match_id)
+        except Exception as e:
+            print(f"Fehler beim Aktualisieren der Punkte für Spiel {match_id}: {e}")
 
     conn.commit()
+    # Trigger Kommentator email only for the latest finished Spieltag
+    try:
+        from app.backend.models.spieltage import get_highest_finished_spieltag
+        from app.backend.models.settings import get_last_kommentator_spieltag, set_last_kommentator_spieltag
+        from app.backend.tasks.send_tipp_reminder_emails import versende_kommentator_punkte_email
+        highest = get_highest_finished_spieltag()
+        if highest:
+            last_sent = get_last_kommentator_spieltag()
+            if highest['nummer'] > last_sent:
+                print(f"Spieltag {highest['nummer']} ist jetzt komplett! Kommentator wird ausgelöst.")
+                versende_kommentator_punkte_email(highest['id'])
+                set_last_kommentator_spieltag(highest['nummer'])
+    except Exception as e:
+        print(f"Fehler beim Auslösen des Kommentator-Triggers: {e}")
     now = datetime.now(timezone.utc).isoformat()
     conn.execute('REPLACE INTO sync_meta (key, value) VALUES (?, ?)', ('last_sync', now))
     conn.commit()

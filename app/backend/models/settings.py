@@ -44,3 +44,11 @@ def get_days_until_tippende() -> int:
         return max(delta.days, 0)
     except Exception as e:
         return -1
+
+
+def get_last_kommentator_spieltag() -> int:
+    val = get_setting('last_kommentator_spieltag')
+    return int(val) if val is not None else 0
+
+def set_last_kommentator_spieltag(spieltag_id: int):
+    set_setting('last_kommentator_spieltag', str(spieltag_id))

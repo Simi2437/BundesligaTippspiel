@@ -95,7 +95,7 @@ def get_tipps_for_spieltag(spieltag_id: int, datenquelle: str):
     conn.row_factory = sqlite3.Row
     placeholders = ','.join('?' for _ in match_ids)
     query = f'''
-        SELECT t.spiel_id, t.tipp_heim, t.tipp_gast, u.username
+        SELECT t.spiel_id, t.tipp_heim, t.tipp_gast, t.punkte, u.username
         FROM tipps t
         JOIN users u ON u.id = t.user_id
         WHERE t.datenquelle = ?
@@ -122,7 +122,7 @@ def get_tipps_for_user_by_spieltag(spieltag_id: int, user_id: int, datenquelle: 
     db.row_factory = sqlite3.Row
     placeholders = ','.join('?' for _ in match_ids)
     query = f"""
-        SELECT t.spiel_id, t.tipp_heim, t.tipp_gast, u.username
+        SELECT t.spiel_id, t.tipp_heim, t.tipp_gast, t.punkte, u.username
         FROM tipps t
         JOIN users u ON u.id = t.user_id
         WHERE t.user_id = ?
@@ -132,6 +132,87 @@ def get_tipps_for_user_by_spieltag(spieltag_id: int, user_id: int, datenquelle: 
     params = [user_id, datenquelle] + match_ids
     cursor = db.execute(query, params)
     return [dict(row) for row in cursor.fetchall()]
+
+def aktualisiere_punkte_fuer_spiel(spiel_id: int):
+    """
+    Berechnet und aktualisiert die Punkte für alle Tipps zu einem Spiel nach der Bundesliga-Regel.
+    """
+    from app.backend.services.external_game_data.game_data_provider import spiel_service
+    result = spiel_service.get_final_result_for_match(spiel_id)
+    if not result:
+        print(f"Kein Ergebnis für Spiel {spiel_id} vorhanden.")
+        return
+    try:
+        tore_heim, tore_gast = map(int, result.split(":"))
+    except Exception as e:
+        print(f"Fehler beim Parsen des Ergebnisses: {result}")
+        return
+    db = get_db()
+    db.row_factory = sqlite3.Row
+    tipps = db.execute(
+        "SELECT id, tipp_heim, tipp_gast FROM tipps WHERE spiel_id = ? AND datenquelle = ?",
+        (spiel_id, DATA_SOURCE)
+    ).fetchall()
+    for tipp in tipps:
+        punkte = 0
+        tipp_heim = tipp["tipp_heim"]
+        tipp_gast = tipp["tipp_gast"]
+        if tipp_heim is None or tipp_gast is None:
+            continue
+        # Unentschieden
+        if tore_heim == tore_gast:
+            if tipp_heim == tipp_gast:
+                if tipp_heim == tore_heim:
+                    punkte = 3  # Exaktes Unentschieden
+                elif abs(tipp_heim - tore_heim) == 1:
+                    punkte = 2  # Unentschieden, 1 Tor daneben
+                else:
+                    punkte = 1  # Unentschieden, aber weiter weg
+            else:
+                punkte = 0
+        else:
+            # Sieg/Tendenz
+            if tipp_heim == tore_heim and tipp_gast == tore_gast:
+                punkte = 3  # Exaktes Ergebnis
+            elif (tipp_heim - tipp_gast) == (tore_heim - tore_gast):
+                punkte = 2  # Richtige Tordifferenz
+            elif (tipp_heim > tipp_gast and tore_heim > tore_gast) or (tipp_heim < tipp_gast and tore_heim < tore_gast):
+                punkte = 1  # Richtige Tendenz
+            else:
+                punkte = 0
+        db.execute("UPDATE tipps SET punkte = ? WHERE id = ?", (punkte, tipp["id"]))
+    db.commit()
+
+def create_punkte_user_context(spieltag_id: int) -> str:
+    """
+    Erstellt einen Kontext-String mit Punkteständen pro User für einen Spieltag und Gesamt.
+    """
+    from app.backend.models.user import get_all_users
+    db = get_db()
+    # Hole alle Spiele des Spieltags
+    spiele = db.execute("SELECT id FROM spiele WHERE spieltag_id = ?", (spieltag_id,)).fetchall()
+    spiel_ids = [row[0] for row in spiele]
+    if not spiel_ids:
+        return "Keine Spiele für diesen Spieltag gefunden."
+    # Hole alle User
+    users = get_all_users()
+    beschreibungen = []
+    for user in users:
+        user_id = user["id"]
+        username = user["username"]
+        # Punkte für diesen Spieltag
+        placeholders = ','.join('?' for _ in spiel_ids)
+        punkte_spieltag = db.execute(
+            f"SELECT SUM(punkte) FROM tipps WHERE user_id = ? AND spiel_id IN ({placeholders})",
+            [user_id] + spiel_ids
+        ).fetchone()[0] or 0
+        # Gesamtpunkte
+        gesamt_punkte = db.execute(
+            "SELECT SUM(punkte) FROM tipps WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()[0] or 0
+        beschreibungen.append(f"{username}: {punkte_spieltag} Punkte am Spieltag, {gesamt_punkte} Gesamt")
+    return "\n".join(beschreibungen)
 
 def get_all_tipp_statistiken() -> List[dict]:
     db = get_db()
