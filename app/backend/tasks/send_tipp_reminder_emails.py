@@ -13,6 +13,23 @@ def ist_morgens():
 def was_last_sent_arround(time):
     return 6 <= time.hour < 10
 
+def versende_kommentator_punkte_email(spieltag_id: int):
+    from app.backend.models.tipps import create_punkte_user_context
+    from app.backend.services.llm_service import kommentator_admin_commando
+    from app.backend.services.mail_service import send_email_to_all_users
+
+    kontext = create_punkte_user_context(spieltag_id)
+    print("Kontext für Kommentator:")
+    print(kontext)
+    print("---------------------")
+    prompt = (
+        "Kommentiere die Leistungen und Punktestände der Teilnehmer nach diesem Spieltag. "
+        "Sei ironisch, sarkastisch, aber nie beleidigend. Maximal 4 Sätze."
+    )
+    text = kommentator_admin_commando(prompt, kontext)
+    return_info = send_email_to_all_users(text)
+    return return_info
+
 def versende_kommentator_tipp_reminder():
 
     now = datetime.now()

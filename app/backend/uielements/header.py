@@ -20,6 +20,7 @@ def build_header():
                     ui.item("🔢 Tippen", on_click=lambda: ui.navigate.to("/game/tippen")).props("flat")
                     ui.item('📊 Übersicht', on_click=lambda: ui.navigate.to('/uebersicht')).props('flat')
                     ui.item('💩 Wall of Shame', on_click=lambda: ui.navigate.to('/stats/wall_of_shame'))
+                    ui.item('🏆 Punktetabelle', on_click=lambda: ui.navigate.to('/punktetabelle')).props('flat')
                     ui.item("🚪 Logout", on_click=lambda: ui.navigate.to("/logout")).props("flat")
                     if user["username"] == "Unknown User":
                         ui.item("🧑‍💻 Registrieren", on_click=lambda: ui.navigate.to("/register")).props("flat")

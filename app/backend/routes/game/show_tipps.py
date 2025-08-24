@@ -7,18 +7,20 @@ from app.backend.services.external_game_data.game_data_provider import spiel_ser
 
 @ui.page("/uebersicht")
 def show_all_tipps():
+    from app.backend.uielements.header import build_header
+    build_header()
     user = current_user()
 
     ui.add_head_html(
         """
-    <style>
-    @media print {
-        .no-print {
-            display: none !important;
+        <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
         }
-    }
-    </style>
-    """
+        </style>
+        """
     )
 
     if is_tipp_ende_passed():
@@ -32,10 +34,32 @@ def show_all_tipps():
 
             ui.label(f'Spieltag {spieltag["order_number"]}').classes("text-xl mt-6")
 
-            # Get all unique usernames for this spieltag
+            # Fallback: recalculate points for matches with missing punkte
+            from app.backend.models.tipps import aktualisiere_punkte_fuer_spiel
+            for spiel in spiele:
+                result = spiel_service.get_final_result_for_match(spiel["id"])
+                # Hole is_finished aus der DB
+                from app.openligadb.db.database_openligadb import get_oldb
+                conn_ol = get_oldb()
+                is_finished_row = conn_ol.execute(
+                    "SELECT is_finished FROM matches WHERE id = ?", (spiel["id"],)
+                ).fetchone()
+                is_finished = is_finished_row[0] if is_finished_row else 0
+
+                if result and is_finished:
+                    missing_punkte = any(
+                        t.get("punkte") is None
+                        for t in tipps
+                        if t["spiel_id"] == spiel["id"]
+                    )
+                    if missing_punkte:
+                        try:
+                            aktualisiere_punkte_fuer_spiel(spiel["id"])
+                        except Exception as e:
+                            print(f"Fehler beim Nachberechnen der Punkte für Spiel {spiel['id']}: {e}")
+
             usernames = sorted({t["username"] for t in tipps})
 
-            # Build columns: first column is Spiel, then one per user
             columns = [
                 {"name": "spiel", "label": "Spiel", "field": "spiel", "align": "center"},
                 {"name": "result", "label": "Ergebnis", "field": "result", "align": "center"},
@@ -43,12 +67,12 @@ def show_all_tipps():
                 {"name": username, "label": username, "field": username, "align": "center"} for username in usernames
             ]
 
-            # Build a lookup: (spiel_id, username) -> tipp
             tipp_lookup = {}
             for t in tipps:
-                tipp_lookup[(t["spiel_id"], t["username"])] = f'{t["tipp_heim"]}:{t["tipp_gast"]}' if t["tipp_heim"] is not None and t["tipp_gast"] is not None else "-"
+                tipp_str = f'{t["tipp_heim"]}:{t["tipp_gast"]}' if t["tipp_heim"] is not None and t["tipp_gast"] is not None else "-"
+                punkte = t.get("punkte")
+                tipp_lookup[(t["spiel_id"], t["username"])] = (tipp_str, punkte)
 
-            # Build rows: one per match
             rows = []
             for spiel in spiele:
                 result = spiel_service.get_final_result_for_match(spiel["id"])
@@ -57,13 +81,18 @@ def show_all_tipps():
                     "result": result if result else "-"
                 }
                 for username in usernames:
-                    row[username] = tipp_lookup.get((spiel["id"], username), "-")
+                    tipp_str, punkte = tipp_lookup.get((spiel["id"], username), ("-", None))
+                    if tipp_str == "-":
+                        row[username] = "-"
+                    else:
+                        row[username] = f"{tipp_str} ({punkte})" if punkte is not None else f"{tipp_str} –"
                 rows.append(row)
 
             with ui.table(columns=columns, rows=rows).classes("w-full").props(
                     'dense bordered separator="cell"'
             ):
                 pass
+
     else:
         ui.label("Deine Tippübersicht")
         ui.button("🖨️ Drucken", on_click=lambda: ui.run_javascript("window.print()"))\
@@ -73,33 +102,56 @@ def show_all_tipps():
             spiele = spiel_service.get_spiele_by_spieltag(spieltag["id"])
             tipps = get_tipps_for_user_by_spieltag(spieltag["id"], user["id"], spiel_service.get_data_source_name())
 
-            if len(tipps) > 0:
-                pass
-
             ui.label(f'Spieltag {spieltag["order_number"]}').classes("text-xl mt-6")
+            # Fallback: recalculate points for matches with missing punkte
+            from app.backend.models.tipps import aktualisiere_punkte_fuer_spiel
+            for spiel in spiele:
+                result = spiel_service.get_final_result_for_match(spiel["id"])
+                # Hole is_finished aus der DB
+                from app.openligadb.db.database_openligadb import get_oldb
+                conn_ol = get_oldb()
+                is_finished_row = conn_ol.execute(
+                    "SELECT is_finished FROM matches WHERE id = ?", (spiel["id"],)
+                ).fetchone()
+                is_finished = is_finished_row[0] if is_finished_row else 0
+
+                if result and is_finished:
+                    missing_punkte = any(
+                        t.get("punkte") is None
+                        for t in tipps
+                        if t["spiel_id"] == spiel["id"]
+                    )
+                    if missing_punkte:
+                        try:
+                            aktualisiere_punkte_fuer_spiel(spiel["id"])
+                        except Exception as e:
+                            print(f"Fehler beim Nachberechnen der Punkte für Spiel {spiel['id']}: {e}")
+
             columns = [
                 {"name": "spiel", "label": "Spiel", "field": "spiel", "align": "center"},
                 {"name": "result", "label": "Ergebnis", "field": "result", "align": "center"},
-                {"name": "benutzer", "label": "Benutzer", "field": "benutzer", "align": "center"},
-                {"name": "tipp_heim", "label": "Tipp Heim", "field": "tipp_heim", "align": "center"},
-                {"name": "tipp_gast", "label": "Tipp Gast", "field": "tipp_gast", "align": "center"},
+                {"name": "tipp", "label": "Tipp", "field": "tipp", "align": "center"},
             ]
 
-            with ui.table(columns=columns, rows=[]).classes("w-full").props(
-                'dense bordered separator="cell"'
-            ) as table:
-                for tipp in tipps:
-                    spiel = next((s for s in spiele if s["id"] == tipp["spiel_id"]), None)
-                    if not spiel:
-                        continue
+            rows = []
+            for tipp in tipps:
+                spiel = next((s for s in spiele if s["id"] == tipp["spiel_id"]), None)
+                if not spiel:
+                    continue
+                result = spiel_service.get_final_result_for_match(spiel["id"])
+                tipp_str = f'{tipp["tipp_heim"]}:{tipp["tipp_gast"]}' if tipp["tipp_heim"] is not None and tipp["tipp_gast"] is not None else "-"
+                punkte = tipp.get("punkte")
+                if tipp_str == "-":
+                    tipp_display = "-"
+                else:
+                    tipp_display = f"{tipp_str} ({punkte})" if punkte is not None else f"{tipp_str} –"
+                rows.append({
+                    "spiel": f'{spiel["heim"]} vs {spiel["gast"]}',
+                    "result": result if result else "-",
+                    "tipp": tipp_display,
+                })
 
-                    result = spiel_service.get_final_result_for_match(spiel["id"])
-                    table.rows.append(
-                        {
-                            "spiel": f'{spiel["heim"]} vs {spiel["gast"]}',
-                            "result": result if result else "-",
-                            "benutzer": user["username"],
-                            "tipp_heim": tipp["tipp_heim"] if tipp["tipp_heim"] is not None else "",
-                            "tipp_gast": tipp["tipp_gast"] if tipp["tipp_gast"] is not None else "",
-                        }
-                    )
+            with ui.table(columns=columns, rows=rows).classes("w-full").props(
+                'dense bordered separator="cell"'
+            ):
+                pass

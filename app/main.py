@@ -15,7 +15,7 @@ from app.backend.routes import *
 
 from app.backend.routes.config import game, teams, usermanagement, spieltage
 from app.backend.routes.config.spieltage import init_spieltage
-from app.backend.routes.game import tippen
+from app.backend.routes.game import tippen, punktetabelle
 from app.backend.tasks.send_tipp_reminder_emails import versende_kommentator_tipp_reminder
 from app.backend.uielements.header import build_header
 from app.openligadb.db.migrator_openligadb import run_oldb_migrations_from_dir
@@ -30,7 +30,29 @@ run_oldb_migrations_from_dir()
 import_matches()
 
 # --- Post-match sync scheduler ---
-def schedule_post_match_syncs(scheduler, offset_minutes=5):
+import requests
+
+def poll_match_and_schedule_next(match_id, scheduler, poll_interval_minutes=5):
+    # Fetch match status directly from OpenLigaDB API
+    try:
+        api_url = f"https://api.openligadb.de/getmatchdata/{match_id}"
+        response = requests.get(api_url)
+        response.raise_for_status()
+        match = response.json()
+        is_finished = match.get('matchIsFinished', False)
+    except Exception as e:
+        print(f"[Poll] Error fetching match {match_id} from OpenLigaDB: {e}")
+        is_finished = False
+    if is_finished:
+        print(f"[Poll] Match {match_id} is finished (OpenLigaDB). Running post-match sync.")
+        import_matches(force_import=True)
+        # Optionally, schedule the next match here
+    else:
+        print(f"[Poll] Match {match_id} not finished yet (OpenLigaDB). Rescheduling poll in {poll_interval_minutes} minutes.")
+        next_poll = datetime.now(timezone.utc) + timedelta(minutes=poll_interval_minutes)
+        scheduler.add_job(lambda: poll_match_and_schedule_next(match_id, scheduler, poll_interval_minutes), 'date', run_date=next_poll, id=f"poll_match_{match_id}_{next_poll.isoformat()}")
+
+def schedule_post_match_syncs(scheduler, estimated_duration_minutes=120):
     conn = get_oldb()
     conn.row_factory = None
     now = datetime.now(timezone.utc)
@@ -42,11 +64,11 @@ def schedule_post_match_syncs(scheduler, offset_minutes=5):
     for match_id, match_date_utc, is_finished in matches:
         try:
             match_time = datetime.fromisoformat(match_date_utc)
-            post_sync_time = match_time + timedelta(minutes=offset_minutes)
+            first_poll_time = match_time + timedelta(minutes=estimated_duration_minutes)
             # Only schedule if in the future
-            if post_sync_time > now:
-                scheduler.add_job(import_matches, 'date', run_date=post_sync_time, id=f"sync_match_{match_id}_{post_sync_time.isoformat()}")
-                print(f"[Scheduler] Scheduled post-match sync for match {match_id} at {post_sync_time}")
+            if first_poll_time > now:
+                scheduler.add_job(lambda: poll_match_and_schedule_next(match_id, scheduler), 'date', run_date=first_poll_time, id=f"poll_match_{match_id}_{first_poll_time.isoformat()}")
+                print(f"[Scheduler] Scheduled first poll for match {match_id} at {first_poll_time}")
         except Exception as e:
             print(f"[Scheduler] Error scheduling match {match_id}: {e}")
 
