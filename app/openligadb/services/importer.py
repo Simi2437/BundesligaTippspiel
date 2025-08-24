@@ -149,8 +149,11 @@ def import_matches(force_import: bool = False):
             last_sent = get_last_kommentator_spieltag()
             if highest['nummer'] > last_sent:
                 print(f"Spieltag {highest['nummer']} ist jetzt komplett! Kommentator wird ausgelöst.")
-                versende_kommentator_punkte_email(highest['id'])
-                set_last_kommentator_spieltag(highest['nummer'])
+                success = versende_kommentator_punkte_email(highest['id'])
+                if success:
+                    set_last_kommentator_spieltag(highest['nummer'])
+                else:
+                    print(f"Kommentator-Mail für Spieltag {highest['nummer']} fehlgeschlagen, set_last_kommentator_spieltag wird NICHT gesetzt!")
     except Exception as e:
         print(f"Fehler beim Auslösen des Kommentator-Triggers: {e}")
     now = datetime.now(timezone.utc).isoformat()

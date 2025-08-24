@@ -13,22 +13,87 @@ def ist_morgens():
 def was_last_sent_arround(time):
     return 6 <= time.hour < 10
 
-def versende_kommentator_punkte_email(spieltag_id: int):
-    from app.backend.models.tipps import create_punkte_user_context
-    from app.backend.services.llm_service import kommentator_admin_commando
-    from app.backend.services.mail_service import send_email_to_all_users
+def generate_punkte_table_html(spieltag_id):
+    from app.backend.models.user import get_all_users
+    from app.backend.db.database_backend import get_db
 
-    kontext = create_punkte_user_context(spieltag_id)
-    print("Kontext für Kommentator:")
-    print(kontext)
-    print("---------------------")
-    prompt = (
-        "Kommentiere die Leistungen und Punktestände der Teilnehmer nach diesem Spieltag. "
-        "Sei ironisch, sarkastisch, aber nie beleidigend. Maximal 4 Sätze."
-    )
-    text = kommentator_admin_commando(prompt, kontext)
-    return_info = send_email_to_all_users(text)
-    return return_info
+    db = get_db()
+    users = get_all_users()
+    spiele = db.execute("SELECT id FROM spiele WHERE spieltag_id = ?", (spieltag_id,)).fetchall()
+    spiel_ids = [row[0] for row in spiele]
+
+    rows = []
+    for user in users:
+        user_id = user["id"]
+        username = user["username"]
+        # Punkte für diesen Spieltag
+        if spiel_ids:
+            placeholders = ','.join('?' for _ in spiel_ids)
+            punkte_spieltag = db.execute(
+                f"SELECT SUM(punkte) FROM tipps WHERE user_id = ? AND spiel_id IN ({placeholders})",
+                [user_id] + spiel_ids
+            ).fetchone()[0] or 0
+        else:
+            punkte_spieltag = 0
+        # Gesamtpunkte
+        gesamt_punkte = db.execute(
+            "SELECT SUM(punkte) FROM tipps WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()[0] or 0
+        rows.append((username, punkte_spieltag, gesamt_punkte))
+
+    # HTML-Tabelle bauen
+    table_html = "<table border='1' cellpadding='4' cellspacing='0'><tr><th>User</th><th>Punkte Spieltag</th><th>Gesamtpunkte</th></tr>"
+    for username, punkte_spieltag, gesamt_punkte in rows:
+        table_html += f"<tr><td>{username}</td><td>{punkte_spieltag}</td><td>{gesamt_punkte}</td></tr>"
+    table_html += "</table>"
+    return table_html
+
+
+import traceback
+
+def versende_kommentator_punkte_email(spieltag_id: int):
+    try:
+        from app.backend.services.llm_service import kommentator_admin_commando
+        from app.backend.services.mail_service import send_email_to_all_users_html
+        from app.backend.models.tipps import create_punkte_user_context
+
+        # 1. Tabelle generieren
+        table_html = generate_punkte_table_html(spieltag_id)
+
+        # 2. Kontext für AI-Kommentar
+        kontext = create_punkte_user_context(spieltag_id)
+        prompt = (
+            "Kommentiere die Leistungen und Punktestände der Teilnehmer nach diesem Spieltag. "
+            "Sei ironisch, sarkastisch, aber nie beleidigend. Maximal 4 Sätze."
+        )
+        ai_comment = kommentator_admin_commando(prompt, kontext)
+
+        # 3. HTML zusammenbauen
+        html_body = f"""
+        <html>
+          <body>
+            <h2>Punktetabelle</h2>
+            {table_html}
+            <hr>
+            <h3>Kommentator sagt:</h3>
+            <p>{ai_comment}</p>
+          </body>
+        </html>
+        """
+
+        # 4. E-Mail verschicken
+        sent, failed = send_email_to_all_users_html(html_body)
+        if sent == 0:
+            print("Fehler: Keine E-Mails wurden versendet!")
+            return False
+        if failed > 0:
+            print(f"Warnung: {failed} E-Mails konnten nicht versendet werden.")
+        return True
+    except Exception as e:
+        print("Fehler beim Versand der Kommentator-Punkte-Mail:")
+        traceback.print_exc()
+        return False
 
 def versende_kommentator_tipp_reminder():
 
