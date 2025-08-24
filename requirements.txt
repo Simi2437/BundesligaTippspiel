@@ -1,4 +1,6 @@
 nicegui
-tzdata
+fastapi
+uvicorn
 requests
 APScheduler==3.11.0
+tzdata
