@@ -204,8 +204,8 @@ def create_punkte_user_context(spieltag_id: int) -> str:
         # Punkte für diesen Spieltag
         placeholders = ','.join('?' for _ in spiel_ids)
         punkte_spieltag = db.execute(
-            f"SELECT SUM(punkte) FROM tipps WHERE user_id = ? AND spiel_id IN ({placeholders})",
-            [user_id] + spiel_ids
+            f"SELECT SUM(punkte) FROM tipps WHERE user_id = ? AND datenquelle = ? AND spiel_id IN ({placeholders})",
+            [user_id, DATA_SOURCE] + spiel_ids
         ).fetchone()[0] or 0
         # Gesamtpunkte
         gesamt_punkte = db.execute(

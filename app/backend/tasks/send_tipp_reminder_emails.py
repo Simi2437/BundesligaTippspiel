@@ -10,8 +10,10 @@ def ist_morgens():
     jetzt = datetime.now()
     return 6 <= jetzt.hour < 10
 
+
 def was_last_sent_arround(time):
     return 6 <= time.hour < 10
+
 
 def generate_punkte_table_html(spieltag_id):
     from app.backend.models.user import get_all_users
@@ -28,18 +30,18 @@ def generate_punkte_table_html(spieltag_id):
         username = user["username"]
         # Punkte für diesen Spieltag
         if spiel_ids:
-            placeholders = ','.join('?' for _ in spiel_ids)
-            punkte_spieltag = db.execute(
-                f"SELECT SUM(punkte) FROM tipps WHERE user_id = ? AND spiel_id IN ({placeholders})",
-                [user_id] + spiel_ids
-            ).fetchone()[0] or 0
+            placeholders = ",".join("?" for _ in spiel_ids)
+            punkte_spieltag = (
+                db.execute(
+                    f"SELECT SUM(punkte) FROM tipps WHERE user_id = ? AND spiel_id IN ({placeholders})",
+                    [user_id] + spiel_ids,
+                ).fetchone()[0]
+                or 0
+            )
         else:
             punkte_spieltag = 0
         # Gesamtpunkte
-        gesamt_punkte = db.execute(
-            "SELECT SUM(punkte) FROM tipps WHERE user_id = ?",
-            (user_id,)
-        ).fetchone()[0] or 0
+        gesamt_punkte = db.execute("SELECT SUM(punkte) FROM tipps WHERE user_id = ?", (user_id,)).fetchone()[0] or 0
         rows.append((username, punkte_spieltag, gesamt_punkte))
 
     # HTML-Tabelle bauen
@@ -51,6 +53,7 @@ def generate_punkte_table_html(spieltag_id):
 
 
 import traceback
+
 
 def versende_kommentator_punkte_email(spieltag_id: int):
     try:
@@ -69,7 +72,8 @@ def versende_kommentator_punkte_email(spieltag_id: int):
         print(f"[Kommentator-Mail] Kontext für AI-Kommentar: {str(kontext)[:300]} ...")
         prompt = (
             "Kommentiere die Leistungen und Punktestände der Teilnehmer nach diesem Spieltag. "
-            "Sei ironisch, sarkastisch, aber nie beleidigend. Maximal 4 Sätze."
+            "Sei ironisch, sarkastisch, aber nie beleidigend. Maximal 4 Sätze. "
+            "Antworte ausschließlich auf Deutsch."
         )
         ai_comment = kommentator_admin_commando(prompt, kontext)
         print(f"[Kommentator-Mail] AI-Kommentar: {ai_comment}")
@@ -101,6 +105,7 @@ def versende_kommentator_punkte_email(spieltag_id: int):
         traceback.print_exc()
         return False
 
+
 def versende_kommentator_tipp_reminder():
 
     now = datetime.now()
@@ -114,15 +119,16 @@ def versende_kommentator_tipp_reminder():
     if not ist_morgens():
         print("Nicht im Morgen-Zeitfenster. Reminder wird nicht gesendet.")
         if not last_sent or abs(now - last_sent) > timedelta(days=4):
-            print(f"Letzter Reminder war am {last_sent or 'Nie'}, mehr als 3 Tage her. Reminder wird trotzdem gesendet.")
+            print(
+                f"Letzter Reminder war am {last_sent or 'Nie'}, mehr als 3 Tage her. Reminder wird trotzdem gesendet."
+            )
         else:
             return
-
 
     days_left = get_days_until_tippende()
 
     dringlichkeit = ""
-    if days_left < 0 :
+    if days_left < 0:
         return
     elif days_left == 0:
         dringlichkeit = "Heute ist die letzte Chance zu tippen! "
@@ -136,12 +142,12 @@ def versende_kommentator_tipp_reminder():
     print(kontext)
     print("---------------------")
     prompt = (
-    f"Beginne mit den schlimmsten Faulpelzen – nenne sie beim Namen und stichle mit Humor. "
-    f"Sei ironisch, sarkastisch und gnadenlos ehrlich – aber niemals beleidigend. "
-    f"Je weniger getippt wurde, desto härter darf der Seitenhieb sein. "
-    f"Teilnehmer mit 100 % Tippquote sollst du loben oder auslassen – sie brauchen keine Erinnerung. "
-    f"Erinnere am Ende daran, dass nur noch {days_left} Tage zum Tippen bleiben. "
-    f"Max. 4 Sätze. Kein Gelaber – direkt, pointiert, bissig."
+        f"Beginne mit den schlimmsten Faulpelzen – nenne sie beim Namen und stichle mit Humor. "
+        f"Sei ironisch, sarkastisch und gnadenlos ehrlich – aber niemals beleidigend. "
+        f"Je weniger getippt wurde, desto härter darf der Seitenhieb sein. "
+        f"Teilnehmer mit 100 % Tippquote sollst du loben oder auslassen – sie brauchen keine Erinnerung. "
+        f"Erinnere am Ende daran, dass nur noch {days_left} Tage zum Tippen bleiben. "
+        f"Max. 4 Sätze. Kein Gelaber – direkt, pointiert, bissig."
     )
     text = kommentator_admin_commando(prompt, kontext)
     return_info = send_email_to_all_users(text)
