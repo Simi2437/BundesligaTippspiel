@@ -47,7 +47,7 @@ def kommentator_admin():
     user_checkboxes = {}
     ui.label("Empfänger auswählen:").classes("mt-4 mb-2")
     for user in users:
-        user_checkboxes[user["id"]] = ui.checkbox(f'{user["username"]} ({user["email"]})', value=True)
+        user_checkboxes[user["id"]] = ui.checkbox(f'{user["username"]}', value=True)
 
     def update_selected_user_ids():
         selected_user_ids.clear()
