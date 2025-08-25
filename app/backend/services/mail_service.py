@@ -63,3 +63,38 @@ def send_email_to_all_users_html(html: str):
             failed += 1
             print(f"Fehler bei {email}: {e}")
     return sent, failed
+
+def send_email_to_selected_users(text: str, user_ids: list):
+    from app.backend.models.user import get_user_by_id
+    sent = 0
+    failed = 0
+    message = f"{text.strip()}"
+    for user_id in user_ids:
+        user = get_user_by_id(user_id)
+        email = user.get("email") if user else None
+        if not email:
+            continue
+        try:
+            send_email(email, "📢 Neue Nachricht vom Tippspiel Kommentator", message)
+            sent += 1
+        except Exception as e:
+            failed += 1
+            print(f"Fehler bei {email}: {e}")
+    return sent, failed
+
+def send_email_to_selected_users_html(html: str, user_ids: list):
+    from app.backend.models.user import get_user_by_id
+    sent = 0
+    failed = 0
+    for user_id in user_ids:
+        user = get_user_by_id(user_id)
+        email = user.get("email") if user else None
+        if not email:
+            continue
+        try:
+            send_email(email, "📢 Neue Nachricht vom Tippspiel Kommentator", "", html_body=html)
+            sent += 1
+        except Exception as e:
+            failed += 1
+            print(f"Fehler bei {email}: {e}")
+    return sent, failed

@@ -65,7 +65,7 @@ def generate_punkte_table_html(spieltag_id):
 import traceback
 
 
-def versende_kommentator_punkte_email(spieltag_id: int):
+def versende_kommentator_punkte_email(spieltag_id: int, recipient_user_ids: list = None):
     try:
         from app.backend.services.llm_service import kommentator_admin_commando
         from app.backend.services.mail_service import send_email_to_all_users_html
@@ -102,7 +102,11 @@ def versende_kommentator_punkte_email(spieltag_id: int):
         """
 
         # 4. E-Mail verschicken
-        sent, failed = send_email_to_all_users_html(html_body)
+        if recipient_user_ids is not None:
+            from app.backend.services.mail_service import send_email_to_selected_users_html
+            sent, failed = send_email_to_selected_users_html(html_body, recipient_user_ids)
+        else:
+            sent, failed = send_email_to_all_users_html(html_body)
         print(f"[Kommentator-Mail] Versand abgeschlossen: {sent} erfolgreich, {failed} fehlgeschlagen.")
         if sent == 0:
             print("[Kommentator-Mail] Fehler: Keine E-Mails wurden versendet!")
