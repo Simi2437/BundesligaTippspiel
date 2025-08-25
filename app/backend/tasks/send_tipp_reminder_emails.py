@@ -58,16 +58,21 @@ def versende_kommentator_punkte_email(spieltag_id: int):
         from app.backend.services.mail_service import send_email_to_all_users_html
         from app.backend.models.tipps import create_punkte_user_context
 
+        print(f"[Kommentator-Mail] Starte Versand für Spieltag {spieltag_id}")
+
         # 1. Tabelle generieren
         table_html = generate_punkte_table_html(spieltag_id)
+        print(f"[Kommentator-Mail] Generierte Punktetabelle (gekürzt): {table_html[:300]} ...")
 
         # 2. Kontext für AI-Kommentar
         kontext = create_punkte_user_context(spieltag_id)
+        print(f"[Kommentator-Mail] Kontext für AI-Kommentar: {str(kontext)[:300]} ...")
         prompt = (
             "Kommentiere die Leistungen und Punktestände der Teilnehmer nach diesem Spieltag. "
             "Sei ironisch, sarkastisch, aber nie beleidigend. Maximal 4 Sätze."
         )
         ai_comment = kommentator_admin_commando(prompt, kontext)
+        print(f"[Kommentator-Mail] AI-Kommentar: {ai_comment}")
 
         # 3. HTML zusammenbauen
         html_body = f"""
@@ -84,14 +89,15 @@ def versende_kommentator_punkte_email(spieltag_id: int):
 
         # 4. E-Mail verschicken
         sent, failed = send_email_to_all_users_html(html_body)
+        print(f"[Kommentator-Mail] Versand abgeschlossen: {sent} erfolgreich, {failed} fehlgeschlagen.")
         if sent == 0:
-            print("Fehler: Keine E-Mails wurden versendet!")
+            print("[Kommentator-Mail] Fehler: Keine E-Mails wurden versendet!")
             return False
         if failed > 0:
-            print(f"Warnung: {failed} E-Mails konnten nicht versendet werden.")
+            print(f"[Kommentator-Mail] Warnung: {failed} E-Mails konnten nicht versendet werden.")
         return True
     except Exception as e:
-        print("Fehler beim Versand der Kommentator-Punkte-Mail:")
+        print(f"[Kommentator-Mail] Fehler beim Versand der Kommentator-Punkte-Mail: {e}")
         traceback.print_exc()
         return False
 

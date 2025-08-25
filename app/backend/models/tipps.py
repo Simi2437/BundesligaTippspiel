@@ -189,8 +189,9 @@ def create_punkte_user_context(spieltag_id: int) -> str:
     """
     from app.backend.models.user import get_all_users
     db = get_db()
-    # Hole alle Spiele des Spieltags
-    spiele = db.execute("SELECT id FROM spiele WHERE spieltag_id = ?", (spieltag_id,)).fetchall()
+    # Hole alle Spiele des Spieltags aus OpenLigaDB
+    conn_ol = get_oldb()
+    spiele = conn_ol.execute("SELECT id FROM matches WHERE group_id = ?", (spieltag_id,)).fetchall()
     spiel_ids = [row[0] for row in spiele]
     if not spiel_ids:
         return "Keine Spiele für diesen Spieltag gefunden."

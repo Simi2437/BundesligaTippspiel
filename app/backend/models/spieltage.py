@@ -6,54 +6,60 @@ def get_all_spieltage():
     return [{'id': r[0], 'nummer': r[1]} for r in rows]
 
 def get_spiele_by_spieltag(spieltag_id):
-    rows = get_db().execute('''
-        SELECT s.id, 
-        t1.name AS heim, 
-        t2.name AS gast, 
-        s.anpfiff,
-        t1.id as heim_id,
-        t2.id as gast_id
-        FROM spiele s
-        JOIN teams t1 ON s.heim_id = t1.id
-        JOIN teams t2 ON s.gast_id = t2.id
-        WHERE s.spieltag_id = ?
+    """
+    Returns all matches for a given spieltag (group_id) from OpenLigaDB.
+    """
+    db = get_oldb()
+    rows = db.execute('''
+        SELECT m.id, t1.name AS heim, t2.name AS gast, m.matchDateTime, t1.id as heim_id, t2.id as gast_id
+        FROM matches m
+        JOIN teams t1 ON m.team1_id = t1.id
+        JOIN teams t2 ON m.team2_id = t2.id
+        WHERE m.group_id = ?
     ''', (spieltag_id,)).fetchall()
-    return [{'id': r[0], 'heim': r[1], 'gast': r[2], 'anpfiff': r[3], 'heim_id': r[4], 'gast_id': r[5],} for r in rows]
+    return [{'id': r[0], 'heim': r[1], 'gast': r[2], 'anpfiff': r[3], 'heim_id': r[4], 'gast_id': r[5]} for r in rows]
 
 def add_spiel(spieltag_id, heim_id, gast_id):
-    conn = get_db()
-    conn.execute('''
-        INSERT INTO spiele (spieltag_id, heim_id, gast_id, anpfiff)
-        VALUES (?, ?, ?, datetime('now'))  -- kannst später anpfiff einbauen
-    ''', (spieltag_id, heim_id, gast_id))
-    conn.commit()
+    """
+    Not supported: OpenLigaDB is read-only. This function should not be used.
+    """
+    # TODO: Remove this function. OpenLigaDB is read-only and matches should not be added here.
+    raise NotImplementedError("add_spiel is not supported. Use OpenLigaDB for match data.")
 
 def update_spiel(spiel_id, heim_id, gast_id):
-    conn = get_db()
-    conn.execute('UPDATE spiele SET heim_id = ?, gast_id = ? WHERE id = ?', (heim_id, gast_id, spiel_id))
-    conn.commit()
+    """
+    Not supported: OpenLigaDB is read-only. This function should not be used.
+    """
+    # TODO: Remove this function. OpenLigaDB is read-only and matches should not be updated here.
+    raise NotImplementedError("update_spiel is not supported. Use OpenLigaDB for match data.")
 
 def delete_spiel(spiel_id):
-    conn = get_db()
-    conn.execute('DELETE FROM spiele WHERE id = ?', (spiel_id,))
-    conn.commit()
+    """
+    Not supported: OpenLigaDB is read-only. This function should not be used.
+    """
+    # TODO: Remove this function. OpenLigaDB is read-only and matches should not be deleted here.
+    raise NotImplementedError("delete_spiel is not supported. Use OpenLigaDB for match data.")
+
+from app.openligadb.db.database_openligadb import get_oldb
 
 def is_spieltag_finished(spieltag_id: int) -> bool:
-    db = get_db()
-    total = db.execute('SELECT COUNT(*) FROM spiele WHERE spieltag_id = ?', (spieltag_id,)).fetchone()[0]
-    finished = db.execute('SELECT COUNT(*) FROM spiele WHERE spieltag_id = ? AND is_finished = 1', (spieltag_id,)).fetchone()[0]
+    db = get_oldb()
+    total = db.execute('SELECT COUNT(*) FROM matches WHERE group_id = ?', (spieltag_id,)).fetchone()[0]
+    finished = db.execute('SELECT COUNT(*) FROM matches WHERE group_id = ? AND is_finished = 1', (spieltag_id,)).fetchone()[0]
     return total > 0 and total == finished
 
 
 def get_highest_finished_spieltag():
-    db = get_db()
-    rows = db.execute('SELECT id, nummer FROM spieltage ORDER BY nummer DESC').fetchall()
+    db = get_oldb()
+    rows = db.execute('SELECT group_id FROM matches GROUP BY group_id ORDER BY group_id DESC').fetchall()
     for r in rows:
         spieltag_id = r[0]
-        total = db.execute('SELECT COUNT(*) FROM spiele WHERE spieltag_id = ?', (spieltag_id,)).fetchone()[0]
-        finished = db.execute('SELECT COUNT(*) FROM spiele WHERE spieltag_id = ? AND is_finished = 1', (spieltag_id,)).fetchone()[0]
+        total = db.execute('SELECT COUNT(*) FROM matches WHERE group_id = ?', (spieltag_id,)).fetchone()[0]
+        finished = db.execute('SELECT COUNT(*) FROM matches WHERE group_id = ? AND is_finished = 1', (spieltag_id,)).fetchone()[0]
         if total > 0 and total == finished:
-            return {'id': spieltag_id, 'nummer': r[1]}
+            nummer_row = db.execute('SELECT name, order_number FROM groups WHERE id = ?', (spieltag_id,)).fetchone()
+            nummer = nummer_row[1] if nummer_row else spieltag_id
+            return {'id': spieltag_id, 'nummer': nummer}
     return None
 
 # def get_tipps_by_spieltag(spieltag_id):

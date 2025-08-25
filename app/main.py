@@ -13,9 +13,7 @@ from nicegui import ui, app
 from app.backend.db.migrator_backend import run_migrations_from_dir
 from app.backend.routes import *
 
-from app.backend.routes.config import game, teams, usermanagement, spieltage
-from app.backend.routes.config.spieltage import init_spieltage
-from app.backend.routes.game import tippen, punktetabelle
+from app.backend.routes.config import teams, usermanagement
 from app.backend.tasks.send_tipp_reminder_emails import versende_kommentator_tipp_reminder
 from app.backend.uielements.header import build_header
 from app.openligadb.db.migrator_openligadb import run_oldb_migrations_from_dir
@@ -110,11 +108,6 @@ def show_log():
 def config_teams():
     build_header()
     teams.config_teams_page()
-
-@ui.page("/config/spieltage")
-def config_teams():
-    build_header()
-    spieltage.config_spieltage()
 
 @ui.page("/config/users")
 def config_users():

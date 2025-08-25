@@ -62,4 +62,30 @@ def kommentator_admin():
     button = ui.button("💬 Kommentator anweisen", on_click=send_prompt).classes("mt-2")
     button_email = ui.button("📧 Mail an alle Teilnehmer", on_click=lambda: send_mails()).classes("mt-2")
 
+    # Manueller Trigger für die Punkte-Mail zum letzten fertigen Spieltag
+    from app.backend.tasks.send_tipp_reminder_emails import versende_kommentator_punkte_email
+    from app.backend.models.spieltage import get_highest_finished_spieltag
+    def send_punkte_mail():
+        button_punkte_mail.disable()
+        def run():
+            try:
+                highest = get_highest_finished_spieltag()
+                if not highest:
+                    ui.notify("❌ Kein fertiger Spieltag gefunden!")
+                    return
+                spieltag_id = highest['id']
+                nummer = highest['nummer']
+                result = versende_kommentator_punkte_email(spieltag_id)
+                if result:
+                    ui.notify(f"✅ Kommentator-Punkte-Mail für Spieltag {nummer} (ID {spieltag_id}) verschickt!")
+                else:
+                    ui.notify(f"❌ Fehler beim Versand der Kommentator-Punkte-Mail für Spieltag {nummer} (ID {spieltag_id}).")
+            except Exception as e:
+                ui.notify(f"❌ Fehler: {e}")
+                print(f"❌ Fehler: {e}")
+            finally:
+                button_punkte_mail.enable()
+        executor.submit(run)
+    button_punkte_mail = ui.button("📊 Kommentator-Punkte-Mail für letzten fertigen Spieltag senden", on_click=send_punkte_mail).classes("mt-2")
+
 
