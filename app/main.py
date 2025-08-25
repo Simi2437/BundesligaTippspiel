@@ -50,7 +50,7 @@ def poll_match_and_schedule_next(match_id, scheduler, poll_interval_minutes=5):
     else:
         print(f"[Poll] Match {match_id} not finished yet (OpenLigaDB). Rescheduling poll in {poll_interval_minutes} minutes.")
         next_poll = datetime.now(timezone.utc) + timedelta(minutes=poll_interval_minutes)
-        scheduler.add_job(lambda: poll_match_and_schedule_next(match_id, scheduler, poll_interval_minutes), 'date', run_date=next_poll, id=f"poll_match_{match_id}_{next_poll.isoformat()}")
+        scheduler.add_job(lambda: poll_match_and_schedule_next(match_id, scheduler, poll_interval_minutes), 'date', run_date=next_poll, id=f"poll_match_{match_id}_{next_poll.isoformat()}", replace_existing=True)
 
 def schedule_post_match_syncs(scheduler, estimated_duration_minutes=120):
     conn = get_oldb()
@@ -67,7 +67,7 @@ def schedule_post_match_syncs(scheduler, estimated_duration_minutes=120):
             first_poll_time = match_time + timedelta(minutes=estimated_duration_minutes)
             # Only schedule if in the future
             if first_poll_time > now:
-                scheduler.add_job(lambda: poll_match_and_schedule_next(match_id, scheduler), 'date', run_date=first_poll_time, id=f"poll_match_{match_id}_{first_poll_time.isoformat()}")
+                scheduler.add_job(lambda: poll_match_and_schedule_next(match_id, scheduler), 'date', run_date=first_poll_time, id=f"poll_match_{match_id}_{first_poll_time.isoformat()}", replace_existing=True)
                 print(f"[Scheduler] Scheduled first poll for match {match_id} at {first_poll_time}")
         except Exception as e:
             print(f"[Scheduler] Error scheduling match {match_id}: {e}")
