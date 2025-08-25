@@ -18,13 +18,23 @@ def was_last_sent_arround(time):
 def generate_punkte_table_html(spieltag_id):
     from app.backend.models.user import get_all_users
     from app.backend.db.database_backend import get_db
+    from app.openligadb.db.database_openligadb import get_oldb
+    from app.backend.services.external_game_data.game_data_provider import spiel_service
 
     db = get_db()
     users = get_all_users()
-    spiele = db.execute("SELECT id FROM spiele WHERE spieltag_id = ?", (spieltag_id,)).fetchall()
+    conn_ol = get_oldb()
+    spiele = conn_ol.execute("SELECT id FROM matches WHERE group_id = ?", (spieltag_id,)).fetchall()
     spiel_ids = [row[0] for row in spiele]
 
+    # Spieltag-Nummer holen
+    nummer = spieltag_id
+    nummer_row = conn_ol.execute('SELECT order_number FROM groups WHERE id = ?', (spieltag_id,)).fetchone()
+    if nummer_row:
+        nummer = nummer_row[0]
+
     rows = []
+    from app.backend.models.tipps import DATA_SOURCE
     for user in users:
         user_id = user["id"]
         username = user["username"]
@@ -33,8 +43,8 @@ def generate_punkte_table_html(spieltag_id):
             placeholders = ",".join("?" for _ in spiel_ids)
             punkte_spieltag = (
                 db.execute(
-                    f"SELECT SUM(punkte) FROM tipps WHERE user_id = ? AND spiel_id IN ({placeholders})",
-                    [user_id] + spiel_ids,
+                    f"SELECT SUM(punkte) FROM tipps WHERE user_id = ? AND datenquelle = ? AND spiel_id IN ({placeholders})",
+                    [user_id, DATA_SOURCE] + spiel_ids,
                 ).fetchone()[0]
                 or 0
             )
@@ -45,7 +55,7 @@ def generate_punkte_table_html(spieltag_id):
         rows.append((username, punkte_spieltag, gesamt_punkte))
 
     # HTML-Tabelle bauen
-    table_html = "<table border='1' cellpadding='4' cellspacing='0'><tr><th>User</th><th>Punkte Spieltag</th><th>Gesamtpunkte</th></tr>"
+    table_html = f"<table border='1' cellpadding='4' cellspacing='0'><tr><th>User</th><th>Punkte Spieltag {nummer}</th><th>Gesamtpunkte</th></tr>"
     for username, punkte_spieltag, gesamt_punkte in rows:
         table_html += f"<tr><td>{username}</td><td>{punkte_spieltag}</td><td>{gesamt_punkte}</td></tr>"
     table_html += "</table>"
