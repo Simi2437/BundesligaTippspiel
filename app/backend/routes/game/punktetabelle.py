@@ -1,8 +1,10 @@
 from nicegui import ui
 from app.backend.models.user import get_all_users
 from app.backend.db.database_backend import get_db
+from app.backend.uielements.pagestructure import inner_page
 
-@ui.page("/punktetabelle")
+
+@inner_page("/punktetabelle")
 def punktetabelle():
     ui.label("🏆 Punktetabelle").classes("text-2xl my-4")
     users = get_all_users()
