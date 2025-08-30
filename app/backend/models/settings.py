@@ -41,7 +41,7 @@ def get_days_until_tippende() -> int:
         tipp_ende = datetime.fromisoformat(tipp_ende_str).astimezone(timezone.utc)
         now = datetime.now(timezone.utc)
         delta = tipp_ende - now
-        return max(delta.days, 0)
+        return delta.days
     except Exception as e:
         return -1
 
