@@ -12,6 +12,7 @@ services:
       - TZ=Europe/Berlin
 #      - MAIL_PASSWORD=your_password_here
 #      - GROQ_API_KEY=your_api_key_here
+#      - GROQ_AI_MODEL="llama-3.3-70b-versatile"
     restart: unless-stopped
 networks:
   default:

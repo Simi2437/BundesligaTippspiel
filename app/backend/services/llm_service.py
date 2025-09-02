@@ -8,6 +8,7 @@ from app.backend.models.user import get_all_users
 # OLLAMA_BASE_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
 # MODEL_NAME = "llama3:8b"
 groq_api_key = os.environ.get("GROQ_API_KEY", None)
+groq_ai_model = os.environ.get("GROQ_AI_MODEL", "llama-3.3-70b-versatile")
 
 
 from app.backend.models.settings import is_tipp_ende_passed
@@ -45,7 +46,7 @@ def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str, custom
         "https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {groq_api_key}"},
         json={
-            "model": "llama3-8b-8192",
+            "model": groq_ai_model,
             "messages": [{"role": "user", "content": full_prompt}],
             "temperature": 0.9,
         },
