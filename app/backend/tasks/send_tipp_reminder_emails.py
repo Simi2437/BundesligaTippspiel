@@ -54,10 +54,12 @@ def generate_punkte_table_html(spieltag_id):
         gesamt_punkte = db.execute("SELECT SUM(punkte) FROM tipps WHERE user_id = ?", (user_id,)).fetchone()[0] or 0
         rows.append((username, punkte_spieltag, gesamt_punkte))
 
-    # HTML-Tabelle bauen
-    table_html = f"<table border='1' cellpadding='4' cellspacing='0'><tr><th>User</th><th>Punkte Spieltag {nummer}</th><th>Gesamtpunkte</th></tr>"
-    for username, punkte_spieltag, gesamt_punkte in rows:
-        table_html += f"<tr><td>{username}</td><td>{punkte_spieltag}</td><td>{gesamt_punkte}</td></tr>"
+    rows.sort(key=lambda x: x[2], reverse=True)
+
+    # HTML-Tabelle bauen mit Platzierung
+    table_html = f"<table border='1' cellpadding='4' cellspacing='0'><tr><th>Platz</th><th>User</th><th>Punkte Spieltag {nummer}</th><th>Gesamtpunkte</th></tr>"
+    for idx, (username, punkte_spieltag, gesamt_punkte) in enumerate(rows, start=1):
+        table_html += f"<tr><td>{idx}</td><td>{username}</td><td>{punkte_spieltag}</td><td>{gesamt_punkte}</td></tr>"
     table_html += "</table>"
     return table_html
 
