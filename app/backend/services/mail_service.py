@@ -5,13 +5,22 @@ from email.message import EmailMessage
 from app.backend.models.user import get_all_users
 
 footer = """
-    
 ----
 🏠 Zum Tippspiel: https://it-ketterl.de/tippspiel/
 🔢 Tippen: https://it-ketterl.de/tippspiel/game/tippen
 📊 Wall of Shame ansehen: https://it-ketterl.de/tippspiel/stats/wall_of_shame
 📊 Deine Tippübersicht: https://it-ketterl.de/tippspiel/uebersicht
-    """
+"""
+
+html_footer = """
+<hr>
+<p>
+🏠 <a href='https://it-ketterl.de/tippspiel/'>Zum Tippspiel</a><br>
+🔢 <a href='https://it-ketterl.de/tippspiel/game/tippen'>Tippen</a><br>
+📊 <a href='https://it-ketterl.de/tippspiel/stats/wall_of_shame'>Wall of Shame ansehen</a><br>
+📊 <a href='https://it-ketterl.de/tippspiel/uebersicht'>Deine Tippübersicht</a>
+</p>
+"""
 
 def send_email(to_address, subject, body, html_body=None):
     if os.environ.get("MAIL_PASSWORD", None) is None:
@@ -23,13 +32,14 @@ def send_email(to_address, subject, body, html_body=None):
     message = f"{body.strip()}\n{footer}"
     msg.set_content(message)
     if html_body:
-        msg.add_alternative(f"{html_body}{footer}", subtype="html")
+        msg.add_alternative(f"{html_body}{html_footer}", subtype="html")
     with smtplib.SMTP_SSL("smtp.strato.de", 465) as smtp:
         mail_password = os.environ.get("MAIL_PASSWORD")
         if not mail_password:
             raise ValueError("MAIL_PASSWORD environment variable is not set.")
         smtp.login("tippmaster@it-ketterl.de", mail_password)
         smtp.send_message(msg)
+
 
 def send_email_to_all_users(text: str):
     users = get_all_users()
