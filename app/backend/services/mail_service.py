@@ -23,6 +23,7 @@ html_footer = """
 """
 
 def send_email(to_address, subject, body, html_body=None):
+    print(f"[MAIL] Sende Mail an {to_address} mit Betreff '{subject}'...")
     if os.environ.get("MAIL_PASSWORD", None) is None:
         raise ValueError("MAIL_PASSWORD environment variable is not set.")
     msg = EmailMessage()
@@ -39,6 +40,7 @@ def send_email(to_address, subject, body, html_body=None):
             raise ValueError("MAIL_PASSWORD environment variable is not set.")
         smtp.login("tippmaster@it-ketterl.de", mail_password)
         smtp.send_message(msg)
+    print(f"[MAIL] Mail an {to_address} erfolgreich versendet.")
 
 
 def send_email_to_all_users(text: str):
