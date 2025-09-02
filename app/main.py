@@ -3,7 +3,10 @@ import os
 import threading
 import time
 import traceback
+import logging
 from datetime import datetime, timedelta, timezone
+
+logging.basicConfig(level=logging.INFO)
 
 import uvicorn
 
@@ -39,14 +42,14 @@ def poll_match_and_schedule_next(match_id, scheduler, poll_interval_minutes=5):
         match = response.json()
         is_finished = match.get('matchIsFinished', False)
     except Exception as e:
-        print(f"[Poll] Error fetching match {match_id} from OpenLigaDB: {e}")
+        logging.info(f"[Poll] Error fetching match {match_id} from OpenLigaDB: {e}")
         is_finished = False
     if is_finished:
-        print(f"[Poll] Match {match_id} is finished (OpenLigaDB). Running post-match sync.")
+        logging.info(f"[Poll] Match {match_id} is finished (OpenLigaDB). Running post-match sync.")
         import_matches(force_import=True)
         # Optionally, schedule the next match here
     else:
-        print(f"[Poll] Match {match_id} not finished yet (OpenLigaDB). Rescheduling poll in {poll_interval_minutes} minutes.")
+        logging.info(f"[Poll] Match {match_id} not finished yet (OpenLigaDB). Rescheduling poll in {poll_interval_minutes} minutes.")
         next_poll = datetime.now(timezone.utc) + timedelta(minutes=poll_interval_minutes)
         scheduler.add_job(lambda: poll_match_and_schedule_next(match_id, scheduler, poll_interval_minutes), 'date', run_date=next_poll, id=f"poll_match_{match_id}_{next_poll.isoformat()}", replace_existing=True)
 
@@ -66,9 +69,9 @@ def schedule_post_match_syncs(scheduler, estimated_duration_minutes=120):
             # Only schedule if in the future
             if first_poll_time > now:
                 scheduler.add_job(lambda: poll_match_and_schedule_next(match_id, scheduler), 'date', run_date=first_poll_time, id=f"poll_match_{match_id}_{first_poll_time.isoformat()}", replace_existing=True)
-                print(f"[Scheduler] Scheduled first poll for match {match_id} at {first_poll_time}")
+                logging.info(f"[Scheduler] Scheduled first poll for match {match_id} at {first_poll_time}")
         except Exception as e:
-            print(f"[Scheduler] Error scheduling match {match_id}: {e}")
+            logging.info(f"[Scheduler] Error scheduling match {match_id}: {e}")
 
 scheduler = BackgroundScheduler()
 schedule_post_match_syncs(scheduler)
@@ -82,7 +85,7 @@ def reminder_loop():
         try:
             versende_kommentator_tipp_reminder()
         except Exception as e:
-            print(f"Fehler beim Senden der Tipp-Erinnerung: {e}")
+            logging.info(f"Fehler beim Senden der Tipp-Erinnerung: {e}")
             traceback.print_exc()
         time.sleep(60 * 60)  # run once per hour
 
@@ -118,15 +121,15 @@ def config_users():
 
 REL_PATH = os.environ.get("REL_PATH", "")
 
-print("🟢 Start main.py")
+logging.info("🟢 Start main.py")
 
 if REL_PATH:
-    print(f"🌐 Starte unter REL_PATH={REL_PATH}")
+    logging.info(f"🌐 Starte unter REL_PATH={REL_PATH}")
     sub_app = FastAPI()
     app.mount(REL_PATH, sub_app)  # mount die App unter /tippspiel
     ui.run_with(sub_app, title='Tippspiel', storage_secret='geheim')
     
     uvicorn.run(sub_app, host='0.0.0.0', port=8080)
 else:
-    print("🌐 Starte Standalone unter /")
+    logging.info("🌐 Starte Standalone unter /")
     ui.run(title='Tippspiel', storage_secret='geheim', reload=False)

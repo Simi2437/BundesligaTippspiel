@@ -1,4 +1,6 @@
 import os
+import logging
+logging.basicConfig(level=logging.INFO)
 
 import requests
 
@@ -32,7 +34,7 @@ def get_dynamic_system_prompt():
 def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str, custom_system_prompt: str | None = None):
     if not groq_api_key:
         return "KEIN APIKEY"
-    print("Trying to reach the api.")
+    logging.info("Trying to reach the api.")
     # Dynamischer System-Prompt, falls keiner übergeben wurde
     if custom_system_prompt is None:
         custom_system_prompt = get_dynamic_system_prompt()
@@ -57,16 +59,16 @@ def kommentator_admin_commando(admin_input: str, teilnehmer_kontext: str, custom
             data = response.json()
             return data["choices"][0]["message"]["content"].strip()
         except Exception as e:
-            print("⚠️ JSON-Parsing fehlgeschlagen trotz erfolgreichem Statuscode.")
-            print(f"Status Code: {response.status_code}")
-            print("Raw Response:")
-            print(response.text)
+            logging.error("⚠️ JSON-Parsing fehlgeschlagen trotz erfolgreichem Statuscode.")
+            logging.info(f"Status Code: {response.status_code}")
+            logging.info("Raw Response:")
+            logging.info(response.text)
             raise e
     else:
-        print("❌ Fehlerhafte Antwort vom LLM:")
-        print(f"Status Code: {response.status_code}")
-        print("Response Body:")
-        print(response.text)
+        logging.info("❌ Fehlerhafte Antwort vom LLM:")
+        logging.info(f"Status Code: {response.status_code}")
+        logging.info("Response Body:")
+        logging.info(response.text)
         raise Exception(f"Groq API-Fehler: Status {response.status_code}")
 
 
@@ -129,9 +131,9 @@ def create_tipp_user_context():
 
 # def ensure_model_available():
 #     try:
-#         print(f"⚙️ Lade Modell {MODEL_NAME} von Ollama …")
+#         logging.info(f"⚙️ Lade Modell {MODEL_NAME} von Ollama …")
 #         response = requests.post(f"{OLLAMA_BASE_URL}/api/pull", json={"name": MODEL_NAME}, timeout=120)
 #         response.raise_for_status()
-#         print("✅ Modell geladen oder bereits verfügbar.")
+#         logging.info("✅ Modell geladen oder bereits verfügbar.")
 #     except Exception as e:
-#         print(f"❌ Fehler beim Laden des Modells: {e}")
+#         logging.info(f"❌ Fehler beim Laden des Modells: {e}")

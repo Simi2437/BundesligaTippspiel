@@ -1,5 +1,7 @@
 import sqlite3
 from datetime import datetime, timezone, timedelta
+import logging
+logging.basicConfig(level=logging.INFO)
 
 import requests
 
@@ -21,7 +23,7 @@ def is_sync_due(minutes: int) -> bool:
         last_sync = datetime.fromisoformat(row["value"])
         return datetime.now(timezone.utc) - last_sync >= timedelta(minutes=minutes)
     except Exception as e:
-        print(f"⚠️ Fehler beim Parsen von 'last_sync': {e}")
+        logging.info(f"⚠️ Fehler beim Parsen von 'last_sync': {e}")
         return True  # Im Fehlerfall lieber synchronisieren
 
 
@@ -35,7 +37,7 @@ def import_matches(force_import: bool = False):
     try:
         response = requests.get(API_URL)
     except requests.RequestException as e:
-        print(f"❌ Fehler beim Abrufen der Daten: {e}")
+        logging.info(f"❌ Fehler beim Abrufen der Daten: {e}")
         raise OpenLigaImportError(f"Fehler beim Abrufen der Daten: {e}")
 
     try:
@@ -136,7 +138,7 @@ def import_matches(force_import: bool = False):
             from app.backend.models.tipps import aktualisiere_punkte_fuer_spiel
             aktualisiere_punkte_fuer_spiel(match_id)
         except Exception as e:
-            print(f"Fehler beim Aktualisieren der Punkte für Spiel {match_id}: {e}")
+            logging.error(f"Fehler beim Aktualisieren der Punkte für Spiel {match_id}: {e}")
 
     conn.commit()
     # Trigger Kommentator email only for the latest finished Spieltag
@@ -148,14 +150,14 @@ def import_matches(force_import: bool = False):
         if highest:
             last_sent = get_last_kommentator_spieltag()
             if highest['nummer'] > last_sent:
-                print(f"Spieltag {highest['nummer']} ist jetzt komplett! Kommentator wird ausgelöst.")
+                logging.info(f"Spieltag {highest['nummer']} ist jetzt komplett! Kommentator wird ausgelöst.")
                 success = versende_kommentator_punkte_email(highest['id'])
                 if success:
                     set_last_kommentator_spieltag(highest['nummer'])
                 else:
-                    print(f"Kommentator-Mail für Spieltag {highest['nummer']} fehlgeschlagen, set_last_kommentator_spieltag wird NICHT gesetzt!")
+                    logging.info(f"Kommentator-Mail für Spieltag {highest['nummer']} fehlgeschlagen, set_last_kommentator_spieltag wird NICHT gesetzt!")
     except Exception as e:
-        print(f"Fehler beim Auslösen des Kommentator-Triggers: {e}")
+        logging.info(f"Fehler beim Auslösen des Kommentator-Triggers: {e}")
     now = datetime.now(timezone.utc).isoformat()
     conn.execute('REPLACE INTO sync_meta (key, value) VALUES (?, ?)', ('last_sync', now))
     conn.commit()

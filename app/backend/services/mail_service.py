@@ -1,5 +1,7 @@
 import os
 import smtplib
+import logging
+logging.basicConfig(level=logging.INFO)
 from email.message import EmailMessage
 
 from app.backend.models.user import get_all_users
@@ -23,7 +25,7 @@ html_footer = """
 """
 
 def send_email(to_address, subject, body, html_body=None):
-    print(f"[MAIL] Sende Mail an {to_address} mit Betreff '{subject}'...")
+    logging.info(f"[MAIL] Sende Mail an {to_address} mit Betreff '{subject}'...")
     if os.environ.get("MAIL_PASSWORD", None) is None:
         raise ValueError("MAIL_PASSWORD environment variable is not set.")
     msg = EmailMessage()
@@ -40,7 +42,7 @@ def send_email(to_address, subject, body, html_body=None):
             raise ValueError("MAIL_PASSWORD environment variable is not set.")
         smtp.login("tippmaster@it-ketterl.de", mail_password)
         smtp.send_message(msg)
-    print(f"[MAIL] Mail an {to_address} erfolgreich versendet.")
+    logging.info(f"[MAIL] Mail an {to_address} erfolgreich versendet.")
 
 
 def send_email_to_all_users(text: str):
@@ -57,7 +59,7 @@ def send_email_to_all_users(text: str):
             sent += 1
         except Exception as e:
             failed += 1
-            print(f"Fehler bei {email}: {e}")
+            logging.error(f"Fehler bei {email}: {e}")
     return sent, failed
 
 def send_email_to_all_users_html(html: str):
@@ -73,7 +75,7 @@ def send_email_to_all_users_html(html: str):
             sent += 1
         except Exception as e:
             failed += 1
-            print(f"Fehler bei {email}: {e}")
+            logging.error(f"Fehler bei {email}: {e}")
     return sent, failed
 
 def send_email_to_selected_users(text: str, user_ids: list):
@@ -91,7 +93,7 @@ def send_email_to_selected_users(text: str, user_ids: list):
             sent += 1
         except Exception as e:
             failed += 1
-            print(f"Fehler bei {email}: {e}")
+            logging.error(f"Fehler bei {email}: {e}")
     return sent, failed
 
 def send_email_to_selected_users_html(html: str, user_ids: list):
@@ -108,5 +110,5 @@ def send_email_to_selected_users_html(html: str, user_ids: list):
             sent += 1
         except Exception as e:
             failed += 1
-            print(f"Fehler bei {email}: {e}")
+            logging.error(f"Fehler bei {email}: {e}")
     return sent, failed

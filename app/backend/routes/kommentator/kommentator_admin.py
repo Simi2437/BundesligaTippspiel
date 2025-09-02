@@ -1,4 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
+import logging
+logging.basicConfig(level=logging.INFO)
 
 from nicegui import ui
 
@@ -23,7 +25,7 @@ def kommentator_admin():
     response_output = ui.label("").classes("text-lg mt-4")
 
     def send_prompt():
-        print("Send Prompt button pressed")
+        logging.info("Send Prompt button pressed")
         button.disable()
         prompt = input_field.value.strip()
         if not prompt:
@@ -100,7 +102,7 @@ def kommentator_admin():
                     ui.notify(f"❌ Fehler beim Versand der Kommentator-Punkte-Mail für Spieltag {nummer} (ID {spieltag_id}).")
             except Exception as e:
                 ui.notify(f"❌ Fehler: {e}")
-                print(f"❌ Fehler: {e}")
+                logging.info(f"❌ Fehler: {e}")
             finally:
                 button_punkte_mail.enable()
         executor.submit(run)

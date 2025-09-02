@@ -1,5 +1,7 @@
 from nicegui import ui
 import io
+import logging
+logging.basicConfig(level=logging.INFO)
 from openpyxl import Workbook
 
 from app.backend.models.settings import is_tipp_ende_passed
@@ -150,7 +152,7 @@ def show_all_tipps():
                         try:
                             aktualisiere_punkte_fuer_spiel(spiel["id"])
                         except Exception as e:
-                            print(f"Fehler beim Nachberechnen der Punkte für Spiel {spiel['id']}: {e}")
+                            logging.error(f"Fehler beim Nachberechnen der Punkte für Spiel {spiel['id']}: {e}")
 
             usernames = sorted({t["username"] for t in tipps})
 
@@ -219,7 +221,7 @@ def show_all_tipps():
                         try:
                             aktualisiere_punkte_fuer_spiel(spiel["id"])
                         except Exception as e:
-                            print(f"Fehler beim Nachberechnen der Punkte für Spiel {spiel['id']}: {e}")
+                            logging.error(f"Fehler beim Nachberechnen der Punkte für Spiel {spiel['id']}: {e}")
 
             columns = [
                 {"name": "spiel", "label": "Spiel", "field": "spiel", "align": "center"},

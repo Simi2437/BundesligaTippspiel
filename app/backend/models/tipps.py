@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.INFO)
 import sqlite3
 from typing import List, Dict
 
@@ -145,7 +147,7 @@ def aktualisiere_punkte_fuer_spiel(spiel_id: int):
     try:
         tore_heim, tore_gast = map(int, result.split(":"))
     except Exception as e:
-        print(f"Fehler beim Parsen des Ergebnisses: {result}")
+        logging.error(f"Fehler beim Parsen des Ergebnisses: {result}")
         return
     db = get_db()
     db.row_factory = sqlite3.Row

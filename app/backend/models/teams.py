@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.INFO)
 from app.backend.db.database_backend import get_db
 
 
@@ -27,7 +29,7 @@ def delete_team(team_id):
         conn.commit()
         return True
     except Exception as e:
-        print("DELETE ERROR:", e)
+        logging.error(f"DELETE ERROR: {e}")
         return False
 
 def get_all_teams():

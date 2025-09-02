@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+import logging
+logging.basicConfig(level=logging.INFO)
 
 from app.backend.models.settings import get_days_until_tippende
 from app.backend.models.user_meta import get_last_reminder_timestamp, set_last_reminder_timestamp
@@ -73,22 +75,22 @@ def versende_kommentator_punkte_email(spieltag_id: int, recipient_user_ids: list
         from app.backend.services.mail_service import send_email_to_all_users_html
         from app.backend.models.tipps import create_punkte_user_context
 
-        print(f"[Kommentator-Mail] Starte Versand für Spieltag {spieltag_id}")
+        logging.info(f"[Kommentator-Mail] Starte Versand für Spieltag {spieltag_id}")
 
         # 1. Tabelle generieren
         table_html = generate_punkte_table_html(spieltag_id)
-        print(f"[Kommentator-Mail] Generierte Punktetabelle (gekürzt): {table_html[:300]} ...")
+        logging.info(f"[Kommentator-Mail] Generierte Punktetabelle (gekürzt): {table_html[:300]} ...")
 
         # 2. Kontext für AI-Kommentar
         kontext = create_punkte_user_context(spieltag_id)
-        print(f"[Kommentator-Mail] Kontext für AI-Kommentar: {str(kontext)[:300]} ...")
+        logging.info(f"[Kommentator-Mail] Kontext für AI-Kommentar: {str(kontext)[:300]} ...")
         prompt = (
             "Kommentiere die Leistungen und Punktestände der Teilnehmer nach diesem Spieltag. "
             "Sei ironisch, sarkastisch, aber nie beleidigend. Maximal 4 Sätze. "
             "Antworte ausschließlich auf Deutsch."
         )
         ai_comment = kommentator_admin_commando(prompt, kontext)
-        print(f"[Kommentator-Mail] AI-Kommentar: {ai_comment}")
+        logging.info(f"[Kommentator-Mail] AI-Kommentar: {ai_comment}")
 
         # 3. HTML zusammenbauen
         html_body = f"""
@@ -109,15 +111,15 @@ def versende_kommentator_punkte_email(spieltag_id: int, recipient_user_ids: list
             sent, failed = send_email_to_selected_users_html(html_body, recipient_user_ids)
         else:
             sent, failed = send_email_to_all_users_html(html_body)
-        print(f"[Kommentator-Mail] Versand abgeschlossen: {sent} erfolgreich, {failed} fehlgeschlagen.")
+        logging.info(f"[Kommentator-Mail] Versand abgeschlossen: {sent} erfolgreich, {failed} fehlgeschlagen.")
         if sent == 0:
-            print("[Kommentator-Mail] Fehler: Keine E-Mails wurden versendet!")
+            logging.info("[Kommentator-Mail] Fehler: Keine E-Mails wurden versendet!")
             return False
         if failed > 0:
-            print(f"[Kommentator-Mail] Warnung: {failed} E-Mails konnten nicht versendet werden.")
+            logging.info(f"[Kommentator-Mail] Warnung: {failed} E-Mails konnten nicht versendet werden.")
         return True
     except Exception as e:
-        print(f"[Kommentator-Mail] Fehler beim Versand der Kommentator-Punkte-Mail: {e}")
+        logging.error(f"[Kommentator-Mail] Fehler beim Versand der Kommentator-Punkte-Mail: {e}")
         traceback.print_exc()
         return False
 
@@ -129,13 +131,13 @@ def versende_kommentator_tipp_reminder():
     if last_sent:
         adjusted_last_sent = last_sent - timedelta(hours=12)
         if (now - adjusted_last_sent).days < 3:
-            print(f"Letzter Reminder (adjusted) war am {adjusted_last_sent}, noch keine 3 Tage vergangen.")
+            logging.info(f"Letzter Reminder (adjusted) war am {adjusted_last_sent}, noch keine 3 Tage vergangen.")
             return
 
     if not ist_morgens():
-        print("Nicht im Morgen-Zeitfenster. Reminder wird nicht gesendet.")
+        logging.info("Nicht im Morgen-Zeitfenster. Reminder wird nicht gesendet.")
         if not last_sent or abs(now - last_sent) > timedelta(days=4):
-            print(
+            logging.info(
                 f"Letzter Reminder war am {last_sent or 'Nie'}, mehr als 3 Tage her. Reminder wird trotzdem gesendet."
             )
         else:
@@ -154,9 +156,9 @@ def versende_kommentator_tipp_reminder():
         dringlichkeit = f"Nur noch {days_left} Tage bis zum Tippende! "
 
     kontext = create_tipp_user_context()  # enthält Statistiken, z. B. Tippquote pro User
-    print("Kontext für Kommentator erstellt:")
-    print(kontext)
-    print("---------------------")
+    logging.info("Kontext für Kommentator erstellt:")
+    logging.info(kontext)
+    logging.info("---------------------")
     prompt = (
         f"Beginne mit den schlimmsten Faulpelzen – nenne sie beim Namen und stichle mit Humor. "
         f"Sei ironisch, sarkastisch und gnadenlos ehrlich – aber niemals beleidigend. "
