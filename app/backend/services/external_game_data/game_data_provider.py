@@ -5,11 +5,14 @@ from app.backend.services.external_game_data.openligadb_gamedata_service import 
 
 DATA_PROVIDER = os.getenv("GAME_DATA_PROVIDER", "openligadb").lower()
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 if DATA_PROVIDER == "dummy":
-    print("➡️ Verwende DummyGameDataService")
+    logging.info("➡️ Verwende DummyGameDataService")
     spiel_service = None
 elif DATA_PROVIDER == "openligadb":
-    print("➡️ Verwende OpenLigaDbGameDataService")
+    logging.info("➡️ Verwende OpenLigaDbGameDataService")
     spiel_service = OpenLigaGameDataService()
 else:
     raise ValueError(f"Unbekannter GAME_DATA_PROVIDER: {DATA_PROVIDER}")

@@ -5,6 +5,9 @@ from pathlib import Path
 
 import app
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 BASE_DIR = Path(app.__file__).parent
 
 OLDB_MIGRATIONS_DIR = os.environ.get(
@@ -44,7 +47,7 @@ def run_oldb_migrations_from_dir():
         if version in applied:
             continue  # bereits angewendet
 
-        print(f"Aktiviere Migration: {filename}")
+        logging.info(f"Aktiviere Migration: {filename}")
         with open(os.path.join(OLDB_MIGRATIONS_DIR, filename), encoding="utf-8") as file:
             sql = file.read()
             try:
