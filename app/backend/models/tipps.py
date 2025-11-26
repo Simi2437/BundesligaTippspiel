@@ -32,7 +32,7 @@ def get_tipp_statistik(user_id):
     total = spiel_service.get_anzahl_spiele()
     total_sonder = 5
     getippt = conn.execute(
-        'SELECT COUNT(*) FROM tipps WHERE user_id = ? AND datenquelle = ?',
+        'SELECT COUNT(*) FROM tipps WHERE user_id = ? AND datenquelle = ? AND tipp_heim IS NOT NULL AND tipp_gast IS NOT NULL',
         (user_id, DATA_SOURCE)
     ).fetchone()[0]
     getippt_sonder = conn.execute(
