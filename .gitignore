@@ -1,7 +1,9 @@
 .idea
 .nicegui
 data
-
+backup
+data_bkup
+logs.log
 
 docker-compose.yml
 app.db
