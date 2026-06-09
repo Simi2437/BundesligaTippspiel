@@ -108,4 +108,27 @@ def kommentator_admin():
         executor.submit(run)
     button_punkte_mail = ui.button("📊 Kommentator-Punkte-Mail für letzten fertigen Spieltag senden", on_click=send_punkte_mail).classes("mt-2")
 
+    # Manueller Trigger für die Saison-Sieger-Mail
+    def send_sieger_mail():
+        button_sieger_mail.disable()
+        update_selected_user_ids()
+
+        def run():
+            try:
+                from app.backend.tasks.send_tipp_reminder_emails import versende_saison_sieger_email
+                success = versende_saison_sieger_email(force=True, recipient_user_ids=selected_user_ids if selected_user_ids else None)
+                if success:
+                    ui.notify("✅ Saison-Sieger-Mail erfolgreich verschickt!")
+                else:
+                    ui.notify("❌ Fehler beim Versand der Saison-Sieger-Mail. Logs prüfen.")
+            except Exception as e:
+                ui.notify(f"❌ Fehler: {e}")
+                logging.error(f"[Sieger-Mail] Fehler im Admin-Button: {e}")
+            finally:
+                button_sieger_mail.enable()
+
+        executor.submit(run)
+
+    button_sieger_mail = ui.button("🏆 Saison-Sieger-Mail versenden (force)", on_click=send_sieger_mail).classes("mt-2")
+
 

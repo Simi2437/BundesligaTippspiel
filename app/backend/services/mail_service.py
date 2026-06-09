@@ -62,7 +62,7 @@ def send_email_to_all_users(text: str):
             logging.error(f"Fehler bei {email}: {e}")
     return sent, failed
 
-def send_email_to_all_users_html(html: str):
+def send_email_to_all_users_html(html: str, subject: str = "📢 Neue Nachricht vom Tippspiel Kommentator"):
     users = get_all_users()
     sent = 0
     failed = 0
@@ -71,7 +71,7 @@ def send_email_to_all_users_html(html: str):
         if not email:
             continue
         try:
-            send_email(email, "📢 Neue Nachricht vom Tippspiel Kommentator", "", html_body=html)
+            send_email(email, subject, "", html_body=html)
             sent += 1
         except Exception as e:
             failed += 1
@@ -96,7 +96,7 @@ def send_email_to_selected_users(text: str, user_ids: list):
             logging.error(f"Fehler bei {email}: {e}")
     return sent, failed
 
-def send_email_to_selected_users_html(html: str, user_ids: list):
+def send_email_to_selected_users_html(html: str, user_ids: list, subject: str = "📢 Neue Nachricht vom Tippspiel Kommentator"):
     from app.backend.models.user import get_user_by_id
     sent = 0
     failed = 0
@@ -106,7 +106,7 @@ def send_email_to_selected_users_html(html: str, user_ids: list):
         if not email:
             continue
         try:
-            send_email(email, "📢 Neue Nachricht vom Tippspiel Kommentator", "", html_body=html)
+            send_email(email, subject, "", html_body=html)
             sent += 1
         except Exception as e:
             failed += 1

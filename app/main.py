@@ -17,7 +17,7 @@ from app.backend.db.migrator_backend import run_migrations_from_dir
 from app.backend.routes import *
 
 from app.backend.routes.config import teams, usermanagement
-from app.backend.tasks.send_tipp_reminder_emails import versende_kommentator_tipp_reminder
+from app.backend.tasks.send_tipp_reminder_emails import versende_kommentator_tipp_reminder, versende_saison_sieger_email
 from app.backend.uielements.header import build_header
 from app.openligadb.db.migrator_openligadb import run_oldb_migrations_from_dir
 from app.openligadb.services.importer import import_matches, OpenLigaImportError, is_season_over
@@ -83,6 +83,17 @@ scheduler = BackgroundScheduler()
 schedule_post_match_syncs(scheduler)
 # Refresh schedule every day at 3am
 scheduler.add_job(lambda: schedule_post_match_syncs(scheduler), 'cron', hour=3, id="refresh_post_match_syncs")
+
+# Täglicher Check ob Saison beendet und Sieger-Mail noch nicht versendet wurde
+def check_and_send_sieger_email():
+    try:
+        if is_season_over():
+            logging.info("[Sieger-Mail] Saison beendet – prüfe ob Sieger-Mail noch aussteht ...")
+            versende_saison_sieger_email(force=False)
+    except Exception as e:
+        logging.error(f"[Sieger-Mail] Fehler beim automatischen Check: {e}")
+
+scheduler.add_job(check_and_send_sieger_email, 'cron', hour=9, id="check_sieger_email")
 scheduler.start()
 
 

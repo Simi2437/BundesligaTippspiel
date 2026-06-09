@@ -49,8 +49,12 @@ class OpenLigaGameDataService(BaseGameDataService):
 
 
     def get_anzahl_spiele(self) -> int:
+        """Zählt nur Spiele die einem sichtbaren Spieltag (groups) zugeordnet sind –
+        identisch mit dem was im Tippen-Formular angezeigt wird."""
         conn = get_oldb()
-        result = conn.execute('SELECT COUNT(*) FROM matches').fetchone()[0]
+        result = conn.execute(
+            'SELECT COUNT(*) FROM matches m JOIN groups g ON m.group_id = g.id'
+        ).fetchone()[0]
         return result
 
     def get_erstes_match_datum(self) -> str:
