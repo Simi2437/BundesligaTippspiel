@@ -50,6 +50,7 @@ def berechne_sondertipp_punkte(saison: str) -> int:
     """
     Berechnet die Punkte für alle Sondertipps der gegebenen Saison und schreibt sie in die DB.
     Vergleicht jeden Tipp exakt mit den eingetragenen Finale-Ergebnissen.
+    Nutzt einheitliche Setting-Keys finale_platz_{n} / sonder_punkte_platz_{n} für alle Plätze.
     Gibt die Anzahl der korrekt getippten Positionen zurück.
     """
     from app.backend.models.settings import get_setting
@@ -57,33 +58,23 @@ def berechne_sondertipp_punkte(saison: str) -> int:
     db = get_db()
     db.row_factory = sqlite3.Row
 
-    # Ermittle die 5 getippten Platz-Werte aus den vorhandenen Tipps (sortiert)
-    rows = db.execute(
-        "SELECT DISTINCT platz FROM tipp_sonder WHERE saison = ? AND kategorie = 'Platzierung' ORDER BY platz",
+    # Alle Tipps für die Saison laden
+    tipps = db.execute(
+        "SELECT user_id, platz, team_id FROM tipp_sonder WHERE saison = ? AND kategorie = 'Platzierung'",
         (saison,)
     ).fetchall()
-    platz_values = [row['platz'] for row in rows]
 
-    if not platz_values:
+    if not tipps:
         return 0
 
-    # Mapping: Platz-Wert → (Finale-Setting-Key, Punkte-Setting-Key)
-    # Die ersten 3 sind immer 1, 2, 3 – die letzten 2 sind Vorletzter und Letzter
-    sorted_plaetze = sorted(platz_values)
-    platz_to_keys: Dict[int, tuple] = {}
-    static = {1: 'platz_1', 2: 'platz_2', 3: 'platz_3'}
-    for pv in sorted_plaetze:
-        if pv in static:
-            platz_to_keys[pv] = (f'finale_{static[pv]}', f'sonder_punkte_{static[pv]}')
-    if len(sorted_plaetze) >= 5:
-        platz_to_keys[sorted_plaetze[-2]] = ('finale_platz_vorletzt', 'sonder_punkte_platz_vorletzt')
-        platz_to_keys[sorted_plaetze[-1]] = ('finale_platz_letzt', 'sonder_punkte_platz_letzt')
+    # Alle vorkommenden Plätze ermitteln
+    platz_values = sorted(set(tipp['platz'] for tipp in tipps))
 
-    # Lade eingetragene Finale-Ergebnisse + konfigurierte Punktzahlen
+    # Lade konfigurierte Finale-Ergebnisse + Punktzahlen für jeden vorkommenden Platz
     korrekte: Dict[int, tuple] = {}  # platz → (correct_team_id, punkte_wert)
-    for platz, (finale_key, punkte_key) in platz_to_keys.items():
-        team_id_str = get_setting(finale_key)
-        punkte_str = get_setting(punkte_key, '0')
+    for platz in platz_values:
+        team_id_str = get_setting(f'finale_platz_{platz}')
+        punkte_str = get_setting(f'sonder_punkte_platz_{platz}', '0')
         if team_id_str:
             try:
                 korrekte[platz] = (int(team_id_str), int(punkte_str or 0))
@@ -93,12 +84,7 @@ def berechne_sondertipp_punkte(saison: str) -> int:
     if not korrekte:
         return 0
 
-    # Alle Tipps abrufen und Punkte schreiben
-    tipps = db.execute(
-        "SELECT user_id, platz, team_id FROM tipp_sonder WHERE saison = ? AND kategorie = 'Platzierung'",
-        (saison,)
-    ).fetchall()
-
+    # Punkte berechnen und in DB schreiben
     treffer = 0
     for tipp in tipps:
         platz = tipp['platz']

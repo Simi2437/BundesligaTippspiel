@@ -192,3 +192,81 @@ def import_matches(force_import: bool = False):
     now = datetime.now(timezone.utc).isoformat()
     conn.execute('REPLACE INTO sync_meta (key, value) VALUES (?, ?)', ('last_sync', now))
     conn.commit()
+
+
+def fetch_endtabelle(shortcut: str = 'bl1', season: str = None) -> list:
+    """
+    Ruft die Abschlusstabelle von OpenLigaDB ab und mappt sie auf lokale Team-IDs.
+
+    Args:
+        shortcut: Liga-Kürzel (z.B. 'bl1')
+        season: Saison als Jahreszahl-String (z.B. '2024'). Falls None, wird die neueste
+                Saison aus der lokalen DB verwendet.
+
+    Returns:
+        Liste von Dicts mit keys: platz (int), team_id (int|None), team_name (str), matched (bool)
+    """
+    conn = get_oldb()
+    conn.row_factory = sqlite3.Row
+
+    if season is None:
+        row = conn.execute(
+            "SELECT season FROM leagues WHERE shortcut = ? ORDER BY season DESC LIMIT 1",
+            (shortcut,)
+        ).fetchone()
+        if not row:
+            raise OpenLigaImportError("Keine Saison in der lokalen DB gefunden.")
+        season = str(row['season'])
+
+    url = f'https://api.openligadb.de/getbltable/{shortcut}/{season}'
+    logging.info(f"Lade Endtabelle von: {url}")
+
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException as e:
+        raise OpenLigaImportError(f"Fehler beim Abrufen der Endtabelle: {e}")
+    except ValueError as e:
+        raise OpenLigaImportError(f"Fehler beim Parsen der Endtabelle (JSON): {e}")
+
+    result = []
+    for i, entry in enumerate(data, start=1):
+        team_info_id = entry.get('teamInfoId')
+        team_name_api = entry.get('teamName', '')
+
+        # 1. Versuch: Matching per ID
+        row = conn.execute(
+            "SELECT id, name FROM teams WHERE id = ?", (team_info_id,)
+        ).fetchone()
+
+        # 2. Fallback: exakter Namens-Match (case-insensitive)
+        if not row:
+            row = conn.execute(
+                "SELECT id, name FROM teams WHERE LOWER(name) = LOWER(?)", (team_name_api,)
+            ).fetchone()
+
+        # 3. Fallback: LIKE-Matching (Teilstring)
+        if not row:
+            row = conn.execute(
+                "SELECT id, name FROM teams WHERE LOWER(name) LIKE LOWER(?)", (f'%{team_name_api}%',)
+            ).fetchone()
+
+        if row:
+            result.append({
+                'platz': i,
+                'team_id': row['id'],
+                'team_name': row['name'],
+                'matched': True,
+            })
+        else:
+            logging.warning(f"Kein lokales Team für '{team_name_api}' (ID {team_info_id}) gefunden.")
+            result.append({
+                'platz': i,
+                'team_id': None,
+                'team_name': team_name_api,
+                'matched': False,
+            })
+
+    return result
+

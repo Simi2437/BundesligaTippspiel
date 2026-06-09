@@ -133,8 +133,23 @@ async def tippen():
 
                 dropdown.on_value_change(save_dropdown_tipp)
 
+            # Dynamisch konfigurierte Plätze laden (nur Plätze mit Punkten > 0)
+            n_teams = len(alle_teams)
+            plaetze_mit_punkte = []
+            for k in range(1, n_teams + 1):
+                punkte_str = get_setting(f'sonder_punkte_platz_{k}', '0')
+                try:
+                    if int(punkte_str or 0) > 0:
+                        plaetze_mit_punkte.append(k)
+                except (ValueError, TypeError):
+                    pass
+
+            # Fallback auf die 5 klassischen Plätze, wenn noch keine Konfiguration vorliegt
+            if not plaetze_mit_punkte and n_teams >= 5:
+                plaetze_mit_punkte = [1, 2, 3, n_teams - 1, n_teams]
+
             # Dropdowns erzeugen
-            for kategorie, plaetze in [('Platzierung', [1, 2, 3,len(alle_teams)-1, len(alle_teams)])]:
+            for kategorie, plaetze in [('Platzierung', plaetze_mit_punkte)]:
                 ui.label(f"{kategorie}").classes("text-md mt-2")
                 for platz in plaetze:
                     dropdown_tippfeld(f'{kategorie} Platz {platz}', kategorie, platz)
