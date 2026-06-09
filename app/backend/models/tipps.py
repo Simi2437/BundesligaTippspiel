@@ -4,7 +4,6 @@ import sqlite3
 from typing import List, Dict
 
 from app.backend.db.database_backend import get_db
-from app.backend.models.settings import get_setting
 from app.backend.services.external_game_data.game_data_provider import spiel_service
 from app.openligadb.db.database_openligadb import get_oldb
 
@@ -30,7 +29,17 @@ def save_tipp(user_id, spiel_id, heim, gast):
 def get_tipp_statistik(user_id):
     conn = get_db()
     total = spiel_service.get_anzahl_spiele()
-    total_sonder = 5
+
+    # Anzahl der Sondertipp-Plätze dynamisch aus dem Punkteschema ermitteln
+    try:
+        from app.backend.models.finale import get_sonder_punkte_schema
+        schema = get_sonder_punkte_schema()
+        total_sonder = len([k for k, v in schema.items() if v > 0])
+        if total_sonder == 0:
+            total_sonder = 5  # Fallback wenn noch kein Schema konfiguriert
+    except Exception:
+        total_sonder = 5
+
     getippt = conn.execute(
         'SELECT COUNT(*) FROM tipps WHERE user_id = ? AND datenquelle = ? AND tipp_heim IS NOT NULL AND tipp_gast IS NOT NULL',
         (user_id, DATA_SOURCE)
