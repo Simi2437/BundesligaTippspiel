@@ -1,4 +1,4 @@
-nicegui
+nicegui==2.24.2
 fastapi
 uvicorn
 requests

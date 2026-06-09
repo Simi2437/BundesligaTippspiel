@@ -131,11 +131,13 @@ logging.info("🟢 Start main.py")
 
 if REL_PATH:
     logging.info(f"🌐 Starte unter REL_PATH={REL_PATH}")
-    sub_app = FastAPI()
-    app.mount(REL_PATH, sub_app)  # mount die App unter /tippspiel
-    ui.run_with(sub_app, title='Tippspiel', storage_secret='geheim')
-    
-    uvicorn.run(sub_app, host='0.0.0.0', port=8080)
+    # Hinweis: app.mount() hier NICHT verwenden – NiceGUI-Routen werden direkt
+    # auf fastapi_app registriert. root_path teilt NiceGUI/ASGI den Sub-Pfad mit,
+    # damit statische Dateien korrekt als /<REL_PATH>/_nicegui/... verlinkt werden.
+    # nginx muss den Präfix strippen (proxy_pass http://container:8080/).
+    fastapi_app = FastAPI()
+    ui.run_with(fastapi_app, title='Tippspiel', storage_secret='geheim')
+    uvicorn.run(fastapi_app, host='0.0.0.0', port=8080, root_path=REL_PATH)
 else:
     logging.info("🌐 Starte Standalone unter /")
     ui.run(title='Tippspiel', storage_secret='geheim', reload=False)
