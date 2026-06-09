@@ -96,6 +96,9 @@ def check_and_send_sieger_email():
 scheduler.add_job(check_and_send_sieger_email, 'cron', hour=9, id="check_sieger_email")
 scheduler.start()
 
+# Einmaligen Startup-Check in Background-Thread – sendet sofort wenn Saison beendet & noch nicht gesendet
+threading.Thread(target=check_and_send_sieger_email, daemon=True).start()
+
 
 def reminder_loop():
     while True:
