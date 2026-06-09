@@ -107,3 +107,17 @@ def get_aktuelle_saison(shortcut: str = 'bl1') -> str:
     row = cursor.fetchone()
     return str(row[0]) if row else 'Unbekannt'
 
+
+def get_available_saisons(shortcut: str = 'bl1') -> list:
+    """
+    Gibt alle verfügbaren Saisons aus der OpenLigaDB zurück (neueste zuerst).
+    Nur Saisons der gegebenen Liga (shortcut).
+    """
+    conn = get_oldb()
+    cursor = conn.execute(
+        'SELECT DISTINCT season FROM leagues WHERE shortcut = ? ORDER BY season DESC',
+        (shortcut,)
+    )
+    return [str(row[0]) for row in cursor.fetchall()]
+
+

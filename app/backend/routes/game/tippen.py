@@ -8,7 +8,7 @@ from app.backend.models.sondertipps import get_aktuelle_saison, save_sondertipp,
 from app.backend.services.auth_service import current_user
 from app.backend.models.tipps import get_tipp, save_tipp
 from app.backend.services.external_game_data.game_data_provider import spiel_service
-from app.backend.uielements.pagestructure import inner_page, inner_page_async
+from app.backend.uielements.pagestructure import inner_page_async
 
 
 async def get_user_timezone() -> str:
@@ -44,8 +44,9 @@ async def tippen():
             ui.label("⚠️ Admin muss Tippende konfigurieren").classes("text-sm text-orange-600")
 
 
-    # 🔄 NEU: Spieltage und Spiele über Service laden
-    for spieltag in spiel_service.get_spieltage():
+    # 🔄 NEU: Spieltage und Spiele über Service laden (nur aktuelle Saison)
+    saison_tippen = get_aktuelle_saison()
+    for spieltag in spiel_service.get_spieltage(saison=saison_tippen):
         with ui.card().classes("w-full my-3"):
             ui.label(f'Spieltag {spieltag["order_number"]}: {spieltag["name"]}').classes("text-lg font-bold")
             spiele = spiel_service.get_spiele_by_spieltag(spieltag["id"])

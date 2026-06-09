@@ -1,7 +1,7 @@
 import logging
 logging.basicConfig(level=logging.INFO)
 import sqlite3
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from app.backend.db.database_backend import get_db
 from app.backend.services.external_game_data.game_data_provider import spiel_service
@@ -17,18 +17,20 @@ def get_tipp(user_id, spiel_id):
     return {'tipp_heim': row[0], 'tipp_gast': row[1]} if row else None
 
 def save_tipp(user_id, spiel_id, heim, gast):
+    from app.backend.models.sondertipps import get_aktuelle_saison
+    saison = get_aktuelle_saison()
     conn = get_db()
     conn.execute('''
-        INSERT INTO tipps (user_id, spiel_id, datenquelle, tipp_heim, tipp_gast)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO tipps (user_id, spiel_id, datenquelle, tipp_heim, tipp_gast, saison)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(user_id, spiel_id, datenquelle)
-        DO UPDATE SET tipp_heim=excluded.tipp_heim, tipp_gast=excluded.tipp_gast
-    ''', (user_id, spiel_id, DATA_SOURCE, heim, gast))
+        DO UPDATE SET tipp_heim=excluded.tipp_heim, tipp_gast=excluded.tipp_gast, saison=excluded.saison
+    ''', (user_id, spiel_id, DATA_SOURCE, heim, gast, saison))
     conn.commit()
 
-def get_tipp_statistik(user_id):
+def get_tipp_statistik(user_id: int, saison: Optional[str] = None):
     conn = get_db()
-    total = spiel_service.get_anzahl_spiele()
+    total = spiel_service.get_anzahl_spiele(saison=saison)
 
     # Anzahl der Sondertipp-Plätze dynamisch aus dem Punkteschema ermitteln
     try:
@@ -40,13 +42,23 @@ def get_tipp_statistik(user_id):
     except Exception:
         total_sonder = 5
 
-    getippt = conn.execute(
-        'SELECT COUNT(*) FROM tipps WHERE user_id = ? AND datenquelle = ? AND tipp_heim IS NOT NULL AND tipp_gast IS NOT NULL',
-        (user_id, DATA_SOURCE)
-    ).fetchone()[0]
-    getippt_sonder = conn.execute(
-        "SELECT COUNT(*) from tipp_sonder ts where ts.user_id = ? and ts.kategorie = 'Platzierung'", [user_id]
-    ).fetchone()[0]
+    if saison:
+        getippt = conn.execute(
+            'SELECT COUNT(*) FROM tipps WHERE user_id = ? AND datenquelle = ? AND saison = ? AND tipp_heim IS NOT NULL AND tipp_gast IS NOT NULL',
+            (user_id, DATA_SOURCE, saison)
+        ).fetchone()[0]
+        getippt_sonder = conn.execute(
+            "SELECT COUNT(*) from tipp_sonder ts where ts.user_id = ? and ts.saison = ? and ts.kategorie = 'Platzierung'",
+            [user_id, saison]
+        ).fetchone()[0]
+    else:
+        getippt = conn.execute(
+            'SELECT COUNT(*) FROM tipps WHERE user_id = ? AND datenquelle = ? AND tipp_heim IS NOT NULL AND tipp_gast IS NOT NULL',
+            (user_id, DATA_SOURCE)
+        ).fetchone()[0]
+        getippt_sonder = conn.execute(
+            "SELECT COUNT(*) from tipp_sonder ts where ts.user_id = ? and ts.kategorie = 'Platzierung'", [user_id]
+        ).fetchone()[0]
     return getippt + getippt_sonder, (total + total_sonder) - (getippt + getippt_sonder)
 
 def count_tipps_for_spiel(spiel_id: int) -> int:
@@ -57,19 +69,31 @@ def count_tipps_for_spiel(spiel_id: int) -> int:
     ).fetchone()
     return result[0] if result else 0
 
-def get_enhanced_tipp_statistik(user_id: int) -> dict:
+def get_enhanced_tipp_statistik(user_id: int, saison: Optional[str] = None) -> dict:
     db = get_db()
     db.row_factory = sqlite3.Row
-    cursor = db.execute('''
-        SELECT
-            COUNT(*) AS total,
-            SUM(CASE WHEN tipp_heim IS NULL OR tipp_gast IS NULL THEN 1 ELSE 0 END) AS offen,
-            SUM(CASE WHEN tipp_heim = tipp_gast THEN 1 ELSE 0 END) AS unentschieden,
-            SUM(CASE WHEN ABS(tipp_heim - tipp_gast) = 1 THEN 1 ELSE 0 END) AS tor_diff_1,
-            SUM(CASE WHEN ABS(tipp_heim - tipp_gast) > 1 THEN 1 ELSE 0 END) AS tor_diff_gt_1
-        FROM tipps
-        WHERE user_id = ?
-    ''', (user_id,))
+    if saison:
+        cursor = db.execute('''
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN tipp_heim IS NULL OR tipp_gast IS NULL THEN 1 ELSE 0 END) AS offen,
+                SUM(CASE WHEN tipp_heim = tipp_gast THEN 1 ELSE 0 END) AS unentschieden,
+                SUM(CASE WHEN ABS(tipp_heim - tipp_gast) = 1 THEN 1 ELSE 0 END) AS tor_diff_1,
+                SUM(CASE WHEN ABS(tipp_heim - tipp_gast) > 1 THEN 1 ELSE 0 END) AS tor_diff_gt_1
+            FROM tipps
+            WHERE user_id = ? AND saison = ?
+        ''', (user_id, saison))
+    else:
+        cursor = db.execute('''
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN tipp_heim IS NULL OR tipp_gast IS NULL THEN 1 ELSE 0 END) AS offen,
+                SUM(CASE WHEN tipp_heim = tipp_gast THEN 1 ELSE 0 END) AS unentschieden,
+                SUM(CASE WHEN ABS(tipp_heim - tipp_gast) = 1 THEN 1 ELSE 0 END) AS tor_diff_1,
+                SUM(CASE WHEN ABS(tipp_heim - tipp_gast) > 1 THEN 1 ELSE 0 END) AS tor_diff_gt_1
+            FROM tipps
+            WHERE user_id = ?
+        ''', (user_id,))
 
     row = cursor.fetchone()
     if row['total'] is not None and row['offen'] is not None:
@@ -226,14 +250,40 @@ def create_punkte_user_context(spieltag_id: int) -> str:
         beschreibungen.append(f"{username}: {punkte_spieltag} Punkte am Spieltag, {gesamt_punkte} Gesamt")
     return "\n".join(beschreibungen)
 
-def get_all_tipp_statistiken() -> List[dict]:
+def get_spielpunkte_by_user(user_id: int, saison: Optional[str] = None) -> int:
+    """Gibt die Summe der Spieltag-Punkte eines Users zurück, optional gefiltert nach Saison."""
+    db = get_db()
+    if saison:
+        result = db.execute(
+            "SELECT SUM(punkte) FROM tipps WHERE user_id = ? AND saison = ?",
+            (user_id, saison)
+        ).fetchone()[0]
+    else:
+        result = db.execute(
+            "SELECT SUM(punkte) FROM tipps WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()[0]
+    return result or 0
+
+
+def get_all_tipp_statistiken(saison: Optional[str] = None) -> List[dict]:
     db = get_db()
     db.row_factory = sqlite3.Row
-    cursor = db.execute('''
-        SELECT user_id,
-               SUM(CASE WHEN tipp_heim IS NOT NULL AND tipp_gast IS NOT NULL THEN 1 ELSE 0 END) AS getippt,
-               SUM(CASE WHEN tipp_heim IS NULL OR tipp_gast IS NULL THEN 1 ELSE 0 END) AS offen
-        FROM tipps
-        GROUP BY user_id
-    ''')
+    if saison:
+        cursor = db.execute('''
+            SELECT user_id,
+                   SUM(CASE WHEN tipp_heim IS NOT NULL AND tipp_gast IS NOT NULL THEN 1 ELSE 0 END) AS getippt,
+                   SUM(CASE WHEN tipp_heim IS NULL OR tipp_gast IS NULL THEN 1 ELSE 0 END) AS offen
+            FROM tipps
+            WHERE saison = ?
+            GROUP BY user_id
+        ''', (saison,))
+    else:
+        cursor = db.execute('''
+            SELECT user_id,
+                   SUM(CASE WHEN tipp_heim IS NOT NULL AND tipp_gast IS NOT NULL THEN 1 ELSE 0 END) AS getippt,
+                   SUM(CASE WHEN tipp_heim IS NULL OR tipp_gast IS NULL THEN 1 ELSE 0 END) AS offen
+            FROM tipps
+            GROUP BY user_id
+        ''')
     return [dict(row) for row in cursor.fetchall()]
