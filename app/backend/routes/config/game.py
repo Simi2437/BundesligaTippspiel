@@ -88,7 +88,6 @@ async def config_game():
     with ui.column().classes('w-full max-w-xl m-auto mt-8 gap-4'):
         ui.label('🛠️ Spielkonfiguration').classes('text-2xl mb-4')
 
-        saison_name_input = ui.input('Saisonname', value=get_setting('saison_name', 'Saison 2025/26'))
 
         tipp_ende_str = get_setting('tipp_ende')
         try:
@@ -115,7 +114,6 @@ async def config_game():
                 naive_dt = datetime.combine(date_obj, time_obj)
                 aware_dt = naive_dt.replace(tzinfo=browser_tz)
                 utc_dt = aware_dt.astimezone(timezone.utc)
-                set_setting('saison_name', saison_name_input.value)
                 set_setting('tipp_ende', utc_dt.isoformat())
                 ui.notify('✅ Einstellungen gespeichert')
             except Exception as e:
@@ -152,7 +150,7 @@ async def config_game():
             new_season = season_input.value.strip()
             if not new_season.isdigit() or len(new_season) != 4:
                 api_check_label.set_text('❌ Kein gültiges Saison-Jahr.')
-                api_check_label.classes(remove='text-green-600', add='text-red-600')
+                api_check_label.classes(remove='text-green-600 text-orange-600', add='text-red-600')
                 api_check_state['ok'] = False
                 return
             url = f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{new_season}'
@@ -160,17 +158,27 @@ async def config_game():
                 resp = _requests.get(url, timeout=8)
                 resp.raise_for_status()
                 data = resp.json()
-                count = len(data) if isinstance(data, list) else '?'
-                api_check_label.set_text(f'✅ Endpunkt erreichbar – {count} Spiele gefunden ({url})')
-                api_check_label.classes(remove='text-red-600', add='text-green-600')
+                if not isinstance(data, list) or len(data) == 0:
+                    api_check_label.set_text(
+                        f'⚠️ Endpunkt antwortet (200 OK), aber enthält keine Spiele – '
+                        f'Saison {new_season} existiert noch nicht oder ist falsch.'
+                    )
+                    api_check_label.classes(remove='text-green-600 text-red-600', add='text-orange-600')
+                    api_check_state['ok'] = False
+                    return
+                finished = sum(1 for m in data if m.get('matchIsFinished'))
+                api_check_label.set_text(
+                    f'✅ {len(data)} Spiele gefunden, davon {finished} abgeschlossen.'
+                )
+                api_check_label.classes(remove='text-red-600 text-orange-600', add='text-green-600')
                 api_check_state['ok'] = True
             except _requests.exceptions.HTTPError as e:
                 api_check_label.set_text(f'❌ HTTP-Fehler: {e}')
-                api_check_label.classes(remove='text-green-600', add='text-red-600')
+                api_check_label.classes(remove='text-green-600 text-orange-600', add='text-red-600')
                 api_check_state['ok'] = False
             except Exception as e:
                 api_check_label.set_text(f'❌ Verbindungsfehler: {e}')
-                api_check_label.classes(remove='text-green-600', add='text-red-600')
+                api_check_label.classes(remove='text-green-600 text-orange-600', add='text-red-600')
                 api_check_state['ok'] = False
 
         sync_disabled_val = get_setting('sync_disabled', 'false') == 'true'
@@ -185,6 +193,9 @@ async def config_game():
                 ui.notify('⚠️ Bitte erst den API-Endpunkt erfolgreich testen bevor du speicherst.', type='warning')
                 return
             set_setting('openligadb_season', new_season)
+            # saison_name automatisch ableiten: 2026 → "Saison 2026/27"
+            short_next = str(int(new_season) + 1)[2:]
+            set_setting('saison_name', f'Saison {new_season}/{short_next}')
             set_setting('sync_disabled', 'true' if sync_disabled_cb.value else 'false')
             updated_url = f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{new_season}'
             ui.notify(f'✅ Gespeichert – neue API-URL: {updated_url}')
