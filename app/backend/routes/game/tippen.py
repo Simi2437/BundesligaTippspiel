@@ -134,15 +134,10 @@ async def tippen():
                 dropdown.on_value_change(save_dropdown_tipp)
 
             # Dynamisch konfigurierte Plätze laden (nur Plätze mit Punkten > 0)
+            from app.backend.models.finale import get_sonder_punkte_schema
             n_teams = len(alle_teams)
-            plaetze_mit_punkte = []
-            for k in range(1, n_teams + 1):
-                punkte_str = get_setting(f'sonder_punkte_platz_{k}', '0')
-                try:
-                    if int(punkte_str or 0) > 0:
-                        plaetze_mit_punkte.append(k)
-                except (ValueError, TypeError):
-                    pass
+            schema = get_sonder_punkte_schema()
+            plaetze_mit_punkte = [k for k in range(1, n_teams + 1) if schema.get(k, 0) > 0]
 
             # Fallback auf die 5 klassischen Plätze, wenn noch keine Konfiguration vorliegt
             if not plaetze_mit_punkte and n_teams >= 5:

@@ -49,11 +49,10 @@ def get_all_sondertipps_for_saison(saison: str, kategorie: str) -> List[Dict]:
 def berechne_sondertipp_punkte(saison: str) -> int:
     """
     Berechnet die Punkte für alle Sondertipps der gegebenen Saison und schreibt sie in die DB.
-    Vergleicht jeden Tipp exakt mit den eingetragenen Finale-Ergebnissen.
-    Nutzt einheitliche Setting-Keys finale_platz_{n} / sonder_punkte_platz_{n} für alle Plätze.
-    Gibt die Anzahl der korrekt getippten Positionen zurück.
+    Liest Finale-Ergebnisse aus der Tabelle finale_ergebnisse und das Punkteschema
+    aus sonder_punkte_schema. Gibt die Anzahl der korrekt getippten Positionen zurück.
     """
-    from app.backend.models.settings import get_setting
+    from app.backend.models.finale import get_finale_ergebnis, get_sonder_punkte
 
     db = get_db()
     db.row_factory = sqlite3.Row
@@ -67,19 +66,14 @@ def berechne_sondertipp_punkte(saison: str) -> int:
     if not tipps:
         return 0
 
-    # Alle vorkommenden Plätze ermitteln
+    # Lade konfigurierte Finale-Ergebnisse und Punkte für jeden vorkommenden Platz
     platz_values = sorted(set(tipp['platz'] for tipp in tipps))
-
-    # Lade konfigurierte Finale-Ergebnisse + Punktzahlen für jeden vorkommenden Platz
     korrekte: Dict[int, tuple] = {}  # platz → (correct_team_id, punkte_wert)
     for platz in platz_values:
-        team_id_str = get_setting(f'finale_platz_{platz}')
-        punkte_str = get_setting(f'sonder_punkte_platz_{platz}', '0')
-        if team_id_str:
-            try:
-                korrekte[platz] = (int(team_id_str), int(punkte_str or 0))
-            except (ValueError, TypeError):
-                pass
+        team_id = get_finale_ergebnis(saison, platz)
+        if team_id is not None:
+            punkte = get_sonder_punkte(platz, default=0)
+            korrekte[platz] = (team_id, punkte)
 
     if not korrekte:
         return 0

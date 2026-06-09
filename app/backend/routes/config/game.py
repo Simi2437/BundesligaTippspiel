@@ -23,37 +23,46 @@ def _platz_label(k: int, n: int) -> str:
     return f'Platz {k}'
 
 
-def _default_punkte(k: int, n: int) -> str:
+def _default_punkte(k: int, n: int) -> int:
     """Liefert den Standard-Punktwert für Platz k in einer n-Team-Liga."""
-    defaults = {1: '10', 2: '7', 3: '5'}
-    if k in defaults:
-        return defaults[k]
-    if k == n - 1 or k == n:
-        return '5'
-    return '0'
+    if k == 1:
+        return 10
+    if k == 2:
+        return 7
+    if k == 3:
+        return 5
+    if k in (n - 1, n):
+        return 5
+    return 0
 
 
-def _migrate_old_sonder_settings(n: int):
-    """Migriert alte Setting-Keys (vorletzt/letzt) in die neuen numerischen Keys."""
-    migration_map = {
-        'finale_platz_vorletzt': f'finale_platz_{n - 1}',
-        'finale_platz_letzt': f'finale_platz_{n}',
-        'sonder_punkte_platz_vorletzt': f'sonder_punkte_platz_{n - 1}',
-        'sonder_punkte_platz_letzt': f'sonder_punkte_platz_{n}',
-        # Alte fehlerhafte Keys aus früherer Version
-        'finale_platz_1': 'finale_platz_1',  # kein Rename nötig, nur der Vollständigkeit halber
-        'sonder_punkte_platz_1': 'sonder_punkte_platz_1',
-        'finale_platz_2': 'finale_platz_2',
-        'sonder_punkte_platz_2': 'sonder_punkte_platz_2',
-        'finale_platz_3': 'finale_platz_3',
-        'sonder_punkte_platz_platz_3': f'sonder_punkte_platz_3',  # möglicher Schreibfehler aus Altversion
-    }
-    for old_key, new_key in migration_map.items():
-        if old_key == new_key:
-            continue
-        old_val = get_setting(old_key)
-        if old_val is not None and get_setting(new_key) is None:
-            set_setting(new_key, old_val)
+def _migrate_settings_to_tables(n: int, aktuelle_saison: str):
+    """
+    Einmalige Migration: Überträgt alte Settings-basierte Konfiguration in die neuen Tabellen.
+    Wird nur ausgeführt, wenn die neuen Tabellen noch keine Daten enthalten.
+    """
+    from app.backend.models.finale import (
+        get_sonder_punkte_schema, set_sonder_punkte_schema,
+        get_alle_finale_ergebnisse, set_finale_ergebnis,
+    )
+
+    # Punkteschema migrieren (nur wenn Tabelle noch leer)
+    if not get_sonder_punkte_schema():
+        schema = {}
+        for k in range(1, n + 1):
+            raw = get_setting(f'sonder_punkte_platz_{k}')
+            schema[k] = int(raw) if raw and raw.isdigit() else _default_punkte(k, n)
+        set_sonder_punkte_schema(schema)
+
+    # Finale-Ergebnisse migrieren (nur wenn für diese Saison noch keine Daten)
+    if not get_alle_finale_ergebnisse(aktuelle_saison):
+        for k in range(1, n + 1):
+            old_val = (
+                get_setting(f'finale_platz_{aktuelle_saison}_{k}')
+                or get_setting(f'finale_platz_{k}')
+            )
+            if old_val and old_val.isdigit():
+                set_finale_ergebnis(aktuelle_saison, k, int(old_val))
 
 
 @inner_page_async("/config/game")
@@ -69,16 +78,18 @@ async def config_game():
     alle_teams = spiel_service.get_alle_teams() if spiel_service else []
     n = len(alle_teams)
 
-    # Einmalige Migration alter Setting-Keys
+    from app.backend.models.sondertipps import get_aktuelle_saison
+    aktuelle_saison = get_aktuelle_saison()
+
+    # Einmalige Migration alter Settings in die neuen Tabellen
     if n >= 5:
-        _migrate_old_sonder_settings(n)
+        _migrate_settings_to_tables(n, aktuelle_saison)
 
     with ui.column().classes('w-full max-w-xl m-auto mt-8 gap-4'):
         ui.label('🛠️ Spielkonfiguration').classes('text-2xl mb-4')
 
         saison_name_input = ui.input('Saisonname', value=get_setting('saison_name', 'Saison 2025/26'))
 
-        # Hole bestehendes Datum/Zeit
         tipp_ende_str = get_setting('tipp_ende')
         try:
             tipp_dt = datetime.fromisoformat(tipp_ende_str) if tipp_ende_str else datetime.now(browser_tz)
@@ -97,16 +108,13 @@ async def config_game():
                     date_obj = datetime.strptime(tipp_datum.value, '%Y-%m-%d').date()
                 else:
                     date_obj = tipp_datum.value
-
                 if isinstance(tipp_uhrzeit.value, str):
                     time_obj = datetime.strptime(tipp_uhrzeit.value, '%H:%M').time()
                 else:
                     time_obj = tipp_uhrzeit.value
-
                 naive_dt = datetime.combine(date_obj, time_obj)
                 aware_dt = naive_dt.replace(tzinfo=browser_tz)
                 utc_dt = aware_dt.astimezone(timezone.utc)
-
                 set_setting('saison_name', saison_name_input.value)
                 set_setting('tipp_ende', utc_dt.isoformat())
                 ui.notify('✅ Einstellungen gespeichert')
@@ -121,7 +129,9 @@ async def config_game():
         from app.openligadb.services.importer import is_season_over
         season_over = is_season_over()
         ui.label('🔄 API-Sync').classes('text-lg font-bold mt-4')
-        ui.label(f'Saison-Status: {"✅ Beendet (alle Spiele abgeschlossen)" if season_over else "🟢 Aktiv"}').classes('text-sm text-gray-600')
+        ui.label(
+            f'Saison-Status: {"✅ Beendet (alle Spiele abgeschlossen)" if season_over else "🟢 Aktiv"}'
+        ).classes('text-sm text-gray-600')
         sync_disabled_val = get_setting('sync_disabled', 'false') == 'true'
         sync_disabled_cb = ui.checkbox('Sync manuell deaktivieren', value=sync_disabled_val)
 
@@ -134,23 +144,27 @@ async def config_game():
         ui.separator()
 
         if n >= 5:
+            from app.backend.models.finale import (
+                get_sonder_punkte_schema, set_sonder_punkte_schema,
+                get_alle_finale_ergebnisse, set_alle_finale_ergebnisse,
+            )
+
             # --- Punkteschema Sondertipps ---
             ui.label('🎯 Punkte pro richtig getippter Sondertipp-Position').classes('text-lg font-bold mt-4')
             ui.label(
                 'Plätze mit 0 Punkten werden im Tipp-Formular nicht angezeigt.'
             ).classes('text-sm text-gray-600')
 
+            schema_aktuell = get_sonder_punkte_schema()
             punkte_inputs: dict = {}
             for k in range(1, n + 1):
-                setting_key = f'sonder_punkte_platz_{k}'
-                val = get_setting(setting_key, _default_punkte(k, n))
+                val = schema_aktuell.get(k, _default_punkte(k, n))
                 punkte_inputs[k] = ui.number(
-                    label=_platz_label(k, n), value=int(val or 0), min=0
+                    label=_platz_label(k, n), value=val, min=0
                 ).props('outlined dense')
 
             def save_punkteschema():
-                for k, inp in punkte_inputs.items():
-                    set_setting(f'sonder_punkte_platz_{k}', str(int(inp.value or 0)))
+                set_sonder_punkte_schema({k: int(inp.value or 0) for k, inp in punkte_inputs.items()})
                 ui.notify('✅ Punkteschema gespeichert')
 
             ui.button('💾 Speichern', on_click=save_punkteschema)
@@ -164,24 +178,21 @@ async def config_game():
 
             ui.label('🏁 Saisonfinale – Echte Endplatzierungen eintragen').classes('text-lg font-bold mt-4')
             ui.label(
-                'Trage die echten Endplatzierungen ein oder lade sie direkt von OpenLigaDB. '
+                f'Saison {aktuelle_saison} – Trage die Endplatzierungen ein oder lade sie von OpenLigaDB. '
                 'Danach "Speichern & Punkte berechnen" klicken.'
             ).classes('text-sm text-gray-600')
 
-            finale_dropdowns: dict = {}  # k → (setting_key, ui.select)
+            ergebnisse_aktuell = get_alle_finale_ergebnisse(aktuelle_saison)
+            finale_dropdowns: dict = {}  # k → ui.select
             for k in range(1, n + 1):
-                setting_key = f'finale_platz_{k}'
-                team_id_str = get_setting(setting_key)
-                current_team = team_id_to_name.get(int(team_id_str)) if team_id_str and team_id_str.isdigit() else None
-                finale_dropdowns[k] = (
-                    setting_key,
-                    ui.select(
-                        options=team_options,
-                        value=current_team,
-                        label=_platz_label(k, n),
-                        clearable=True,
-                    ).props('outlined'),
-                )
+                team_id = ergebnisse_aktuell.get(k)
+                current_team = team_id_to_name.get(team_id) if team_id else None
+                finale_dropdowns[k] = ui.select(
+                    options=team_options,
+                    value=current_team,
+                    label=_platz_label(k, n),
+                    clearable=True,
+                ).props('outlined')
 
             async def lade_von_openligadb():
                 """Lädt die aktuelle Endtabelle von OpenLigaDB und befüllt die Dropdowns."""
@@ -205,11 +216,10 @@ async def config_game():
                     for entry in tabelle:
                         platz = entry['platz']
                         if platz in finale_dropdowns:
-                            _, dropdown = finale_dropdowns[platz]
                             if entry['matched'] and entry['team_id'] is not None:
                                 team_name = team_id_to_name.get(entry['team_id'])
                                 if team_name:
-                                    dropdown.set_value(team_name)
+                                    finale_dropdowns[platz].set_value(team_name)
                                     matched += 1
                                 else:
                                     unmatched.append(f"Platz {platz}: {entry['team_name']}")
@@ -224,19 +234,23 @@ async def config_game():
                             timeout=8000,
                         )
                     else:
-                        ui.notify(f'✅ Endtabelle geladen ({matched} Teams). Bitte prüfen und dann speichern.', type='positive')
+                        ui.notify(
+                            f'✅ Endtabelle geladen ({matched} Teams). Bitte prüfen und dann speichern.',
+                            type='positive',
+                        )
                 except Exception as e:
                     ui.notify(f'❌ Fehler beim Laden von OpenLigaDB: {e}', type='negative')
 
             def speichern_und_berechnen():
-                """Speichert die Endplatzierungen und berechnet die Sondertipp-Punkte."""
-                for k, (setting_key, dropdown) in finale_dropdowns.items():
+                """Speichert Endplatzierungen in finale_ergebnisse und berechnet Sondertipp-Punkte."""
+                ergebnisse: dict = {}
+                for k, dropdown in finale_dropdowns.items():
                     if dropdown.value and dropdown.value in team_name_to_id:
-                        set_setting(setting_key, str(team_name_to_id[dropdown.value]))
+                        ergebnisse[k] = team_name_to_id[dropdown.value]
+                set_alle_finale_ergebnisse(aktuelle_saison, ergebnisse)
                 try:
-                    from app.backend.models.sondertipps import berechne_sondertipp_punkte, get_aktuelle_saison
-                    saison = get_aktuelle_saison()
-                    treffer = berechne_sondertipp_punkte(saison)
+                    from app.backend.models.sondertipps import berechne_sondertipp_punkte
+                    treffer = berechne_sondertipp_punkte(aktuelle_saison)
                     ui.notify(f'✅ Gespeichert & Punkte berechnet! {treffer} korrekte Tipps gefunden.')
                 except Exception as e:
                     ui.notify(f'❌ Fehler beim Berechnen: {e}')
