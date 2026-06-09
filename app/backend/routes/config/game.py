@@ -126,20 +126,72 @@ async def config_game():
         ui.separator()
 
         # --- Sync-Konfiguration ---
-        from app.openligadb.services.importer import is_season_over
+        from app.openligadb.services.importer import is_season_over, OPENLIGADB_SEASON_FALLBACK, OPENLIGADB_SHORTCUT
         season_over = is_season_over()
         ui.label('🔄 API-Sync').classes('text-lg font-bold mt-4')
         ui.label(
             f'Saison-Status: {"✅ Beendet (alle Spiele abgeschlossen)" if season_over else "🟢 Aktiv"}'
         ).classes('text-sm text-gray-600')
+
+        current_season = get_setting('openligadb_season', OPENLIGADB_SEASON_FALLBACK)
+        api_url_preview = f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{current_season}'
+        ui.label('⚽ Saison (OpenLigaDB)').classes('text-sm font-semibold mt-2')
+        ui.label(f'Aktuelle API-URL: {api_url_preview}').classes('text-xs text-gray-500 mb-1')
+        season_input = ui.input(
+            label='Saison-Jahr (z. B. 2026)',
+            value=current_season,
+        ).props('outlined dense').classes('w-48')
+        ui.label('Tipp: Saison wechseln → neues Jahr eintragen → erst testen, dann speichern.') \
+            .classes('text-xs text-gray-400 mb-2')
+
+        api_check_label = ui.label('').classes('text-sm')
+        api_check_state = {'ok': False}
+
+        def check_api():
+            import requests as _requests
+            new_season = season_input.value.strip()
+            if not new_season.isdigit() or len(new_season) != 4:
+                api_check_label.set_text('❌ Kein gültiges Saison-Jahr.')
+                api_check_label.classes(remove='text-green-600', add='text-red-600')
+                api_check_state['ok'] = False
+                return
+            url = f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{new_season}'
+            try:
+                resp = _requests.get(url, timeout=8)
+                resp.raise_for_status()
+                data = resp.json()
+                count = len(data) if isinstance(data, list) else '?'
+                api_check_label.set_text(f'✅ Endpunkt erreichbar – {count} Spiele gefunden ({url})')
+                api_check_label.classes(remove='text-red-600', add='text-green-600')
+                api_check_state['ok'] = True
+            except _requests.exceptions.HTTPError as e:
+                api_check_label.set_text(f'❌ HTTP-Fehler: {e}')
+                api_check_label.classes(remove='text-green-600', add='text-red-600')
+                api_check_state['ok'] = False
+            except Exception as e:
+                api_check_label.set_text(f'❌ Verbindungsfehler: {e}')
+                api_check_label.classes(remove='text-green-600', add='text-red-600')
+                api_check_state['ok'] = False
+
         sync_disabled_val = get_setting('sync_disabled', 'false') == 'true'
         sync_disabled_cb = ui.checkbox('Sync manuell deaktivieren', value=sync_disabled_val)
 
         def save_sync():
+            new_season = season_input.value.strip()
+            if not new_season.isdigit() or len(new_season) != 4:
+                ui.notify('❌ Saison muss eine 4-stellige Jahreszahl sein (z. B. 2026)', type='negative')
+                return
+            if not api_check_state['ok']:
+                ui.notify('⚠️ Bitte erst den API-Endpunkt erfolgreich testen bevor du speicherst.', type='warning')
+                return
+            set_setting('openligadb_season', new_season)
             set_setting('sync_disabled', 'true' if sync_disabled_cb.value else 'false')
-            ui.notify('✅ Sync-Einstellung gespeichert')
+            updated_url = f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{new_season}'
+            ui.notify(f'✅ Gespeichert – neue API-URL: {updated_url}')
 
-        ui.button('💾 Speichern', on_click=save_sync)
+        with ui.row().classes('gap-2 mt-1'):
+            ui.button('🔍 Endpunkt testen', on_click=check_api).props('color=blue outline')
+            ui.button('💾 Speichern', on_click=save_sync)
 
         ui.separator()
 

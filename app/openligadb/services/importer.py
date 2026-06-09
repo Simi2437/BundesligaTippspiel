@@ -8,8 +8,19 @@ import requests
 from app.openligadb.db.database_openligadb import get_oldb
 
 
-# OpenLiga API Endpoint
-API_URL = 'https://api.openligadb.de/getmatchdata/bl1/2025'
+OPENLIGADB_SHORTCUT = 'bl1'
+OPENLIGADB_SEASON_FALLBACK = '2025'
+
+
+def _get_api_url() -> str:
+    """Liest die konfigurierte Saison aus den Settings und baut die API-URL zusammen."""
+    try:
+        from app.backend.models.settings import get_setting
+        season = get_setting('openligadb_season', OPENLIGADB_SEASON_FALLBACK)
+    except Exception:
+        season = OPENLIGADB_SEASON_FALLBACK
+    return f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{season}'
+
 
 def is_sync_due(minutes: int) -> bool:
     conn = get_oldb()
@@ -65,8 +76,11 @@ def import_matches(force_import: bool = False):
         if not is_sync_due(minutes=120):
             return
 
+    api_url = _get_api_url()
+    logging.info(f"🔄 Starte Sync: {api_url}")
+
     try:
-        response = requests.get(API_URL)
+        response = requests.get(api_url)
     except requests.RequestException as e:
         logging.info(f"❌ Fehler beim Abrufen der Daten: {e}")
         raise OpenLigaImportError(f"Fehler beim Abrufen der Daten: {e}")
@@ -269,4 +283,3 @@ def fetch_endtabelle(shortcut: str = 'bl1', season: str = None) -> list:
             })
 
     return result
-
