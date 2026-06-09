@@ -107,20 +107,47 @@ def show_all_tipps():
             if tipp["user_id"] not in user_id_to_name:
                 user = get_user_by_id(tipp["user_id"])
                 user_id_to_name[tipp["user_id"]] = user["username"] if user else str(tipp["user_id"])
-        # Tabelle vorbereiten
+
+        # Prüfe ob Finale-Punkte bereits berechnet wurden
+        punkte_berechnet = any(t.get("punkte") is not None for t in platzierungstipps)
+
         columns = [
             {"name": "username", "label": "Username", "field": "username", "align": "center"}
         ] + [
             {"name": f"platz_{p}", "label": f"Platz {p}", "field": f"platz_{p}", "align": "center"} for p in alle_plaetze
         ]
+        if punkte_berechnet:
+            columns.append({"name": "sonder_punkte", "label": "🏆 Sonder-Pkt", "field": "sonder_punkte", "align": "center"})
+
         rows = []
         for user_id, username in user_id_to_name.items():
             row = {"username": username}
+            sonder_gesamt = 0
             for platz in alle_plaetze:
-                team_name = next((team_id_to_name[t["team_id"]] for t in platzierungstipps if t["user_id"] == user_id and t["platz"] == platz), "-")
-                row[f"platz_{platz}"] = team_name
+                tipp_entry = next((t for t in platzierungstipps if t["user_id"] == user_id and t["platz"] == platz), None)
+                if tipp_entry:
+                    team_name = team_id_to_name.get(tipp_entry["team_id"], "?")
+                    punkte = tipp_entry.get("punkte")
+                    if punkte is None:
+                        cell = team_name
+                    elif punkte > 0:
+                        cell = f"{team_name} ✅ ({punkte} Pkt)"
+                        sonder_gesamt += punkte
+                    else:
+                        cell = f"{team_name} ❌"
+                else:
+                    cell = "-"
+                row[f"platz_{platz}"] = cell
+            if punkte_berechnet:
+                row["sonder_punkte"] = sonder_gesamt
             rows.append(row)
+
+        if punkte_berechnet:
+            rows.sort(key=lambda x: x.get("sonder_punkte", 0), reverse=True)
+
         ui.label("🏆 Sondertipps – Saisonprognose").classes("text-xl mt-6")
+        if not punkte_berechnet:
+            ui.label("ℹ️ Punkte noch nicht berechnet – Admin kann das unter Konfiguration → Spielkonfiguration → Saisonfinale tun.").classes("text-sm text-gray-500 mb-2")
         with ui.table(columns=columns, rows=rows).classes("w-full mb-8").props('dense bordered separator="cell"'):
             pass
 

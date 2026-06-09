@@ -30,9 +30,40 @@ def is_sync_due(minutes: int) -> bool:
 class OpenLigaImportError(Exception):
     pass
 
+
+def is_season_over() -> bool:
+    """Gibt True zurück wenn alle Spiele in der lokalen DB beendet sind und das letzte Spiel in der Vergangenheit liegt."""
+    conn = get_oldb()
+    total = conn.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
+    if total == 0:
+        return False
+    unfinished = conn.execute("SELECT COUNT(*) FROM matches WHERE is_finished = 0").fetchone()[0]
+    if unfinished > 0:
+        return False
+    row = conn.execute("SELECT MAX(match_date_utc) FROM matches").fetchone()
+    if not row or not row[0]:
+        return False
+    try:
+        last_match = datetime.fromisoformat(row[0].replace('Z', '+00:00'))
+        return datetime.now(timezone.utc) > last_match
+    except Exception:
+        return False
+
+
 def import_matches(force_import: bool = False):
-    if not force_import and not is_sync_due(minutes=120):
-        return
+    if not force_import:
+        try:
+            from app.backend.models.settings import get_setting
+            if get_setting('sync_disabled', 'false') == 'true':
+                logging.info("ℹ️ OpenLigaDB-Sync ist manuell deaktiviert.")
+                return
+        except Exception:
+            pass
+        if is_season_over():
+            logging.info("ℹ️ Saison beendet – OpenLigaDB-Sync wird übersprungen.")
+            return
+        if not is_sync_due(minutes=120):
+            return
 
     try:
         response = requests.get(API_URL)

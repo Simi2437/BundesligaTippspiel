@@ -1,0 +1,2 @@
+ALTER TABLE tipp_sonder ADD COLUMN punkte INTEGER DEFAULT NULL;
+

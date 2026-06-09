@@ -20,7 +20,7 @@ from app.backend.routes.config import teams, usermanagement
 from app.backend.tasks.send_tipp_reminder_emails import versende_kommentator_tipp_reminder
 from app.backend.uielements.header import build_header
 from app.openligadb.db.migrator_openligadb import run_oldb_migrations_from_dir
-from app.openligadb.services.importer import import_matches
+from app.openligadb.services.importer import import_matches, OpenLigaImportError, is_season_over
 from app.openligadb.db.database_openligadb import get_oldb
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -28,7 +28,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 run_migrations_from_dir()
 run_oldb_migrations_from_dir()
 
-import_matches()
+try:
+    import_matches()
+except OpenLigaImportError as e:
+    logging.warning(f"⚠️ OpenLigaDB-Import beim Start fehlgeschlagen (App startet trotzdem): {e}")
 
 # --- Post-match sync scheduler ---
 import requests
@@ -54,6 +57,9 @@ def poll_match_and_schedule_next(match_id, scheduler, poll_interval_minutes=5):
         scheduler.add_job(lambda: poll_match_and_schedule_next(match_id, scheduler, poll_interval_minutes), 'date', run_date=next_poll, id=f"poll_match_{match_id}_{next_poll.isoformat()}", replace_existing=True)
 
 def schedule_post_match_syncs(scheduler, estimated_duration_minutes=120):
+    if is_season_over():
+        logging.info("[Scheduler] Saison beendet – keine Match-Polls werden geplant.")
+        return
     conn = get_oldb()
     conn.row_factory = None
     now = datetime.now(timezone.utc)
