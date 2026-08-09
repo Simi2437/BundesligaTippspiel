@@ -197,12 +197,33 @@ async def config_game():
             short_next = str(int(new_season) + 1)[2:]
             set_setting('saison_name', f'Saison {new_season}/{short_next}')
             set_setting('sync_disabled', 'true' if sync_disabled_cb.value else 'false')
+            # Sync-Timestamp zurücksetzen damit der nächste Sync sofort für die neue Saison läuft
+            try:
+                from app.openligadb.db.database_openligadb import get_oldb
+                oldb = get_oldb()
+                oldb.execute("DELETE FROM sync_meta WHERE key = 'last_sync'")
+                oldb.commit()
+            except Exception:
+                pass
             updated_url = f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{new_season}'
             ui.notify(f'✅ Gespeichert – neue API-URL: {updated_url}')
+
+        sync_result_label = ui.label('').classes('text-sm')
+
+        def force_sync():
+            try:
+                from app.openligadb.services.importer import import_matches
+                import_matches(force_import=True)
+                sync_result_label.set_text('✅ Sync erfolgreich abgeschlossen.')
+                sync_result_label.classes(remove='text-red-600', add='text-green-600')
+            except Exception as e:
+                sync_result_label.set_text(f'❌ Sync fehlgeschlagen: {e}')
+                sync_result_label.classes(remove='text-green-600', add='text-red-600')
 
         with ui.row().classes('gap-2 mt-1'):
             ui.button('🔍 Endpunkt testen', on_click=check_api).props('color=blue outline')
             ui.button('💾 Speichern', on_click=save_sync)
+            ui.button('🔄 Jetzt synchronisieren', on_click=force_sync).props('color=orange outline')
 
         ui.separator()
 

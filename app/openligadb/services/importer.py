@@ -43,15 +43,43 @@ class OpenLigaImportError(Exception):
 
 
 def is_season_over() -> bool:
-    """Gibt True zurück wenn alle Spiele in der lokalen DB beendet sind und das letzte Spiel in der Vergangenheit liegt."""
+    """Gibt True zurück wenn alle Spiele der konfigurierten Saison beendet sind und das letzte Spiel in der Vergangenheit liegt."""
+    try:
+        from app.backend.models.settings import get_setting
+        season = get_setting('openligadb_season', OPENLIGADB_SEASON_FALLBACK)
+    except Exception:
+        season = OPENLIGADB_SEASON_FALLBACK
+
     conn = get_oldb()
-    total = conn.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
+    total = conn.execute(
+        """
+        SELECT COUNT(*) FROM matches m
+        JOIN groups g ON m.group_id = g.id
+        JOIN leagues l ON g.league_id = l.id
+        WHERE CAST(l.season AS TEXT) = ?
+        """, (season,)
+    ).fetchone()[0]
     if total == 0:
         return False
-    unfinished = conn.execute("SELECT COUNT(*) FROM matches WHERE is_finished = 0").fetchone()[0]
+    unfinished = conn.execute(
+        """
+        SELECT COUNT(*) FROM matches m
+        JOIN groups g ON m.group_id = g.id
+        JOIN leagues l ON g.league_id = l.id
+        WHERE m.is_finished = 0
+        AND CAST(l.season AS TEXT) = ?
+        """, (season,)
+    ).fetchone()[0]
     if unfinished > 0:
         return False
-    row = conn.execute("SELECT MAX(match_date_utc) FROM matches").fetchone()
+    row = conn.execute(
+        """
+        SELECT MAX(m.match_date_utc) FROM matches m
+        JOIN groups g ON m.group_id = g.id
+        JOIN leagues l ON g.league_id = l.id
+        WHERE CAST(l.season AS TEXT) = ?
+        """, (season,)
+    ).fetchone()
     if not row or not row[0]:
         return False
     try:
@@ -93,20 +121,24 @@ def import_matches(force_import: bool = False):
     conn = get_oldb()
     updated_spieltage = set()
     for match in data:
-        # Only process finished matches
-        if not match.get('matchIsFinished', False):
-            continue
-
         match_id = match['matchID']
-        # Check if local DB already has a final result for this match
-        local_result = conn.execute(
-            "SELECT 1 FROM match_results WHERE match_id = ? AND result_type_id = 2 LIMIT 1",
-            (match_id,)
-        ).fetchone()
-        # If final result exists, skip unless lastUpdateDateTime changed
-        if local_result:
-            existing = conn.execute('SELECT last_update FROM matches WHERE id = ?', (match_id,)).fetchone()
-            if existing and existing[0] == match['lastUpdateDateTime']:
+        is_finished = match.get('matchIsFinished', False)
+
+        # Skip if already up to date
+        if is_finished:
+            # Finished match: skip if final result is stored and last_update hasn't changed
+            local_result = conn.execute(
+                "SELECT 1 FROM match_results WHERE match_id = ? AND result_type_id = 2 LIMIT 1",
+                (match_id,)
+            ).fetchone()
+            if local_result:
+                existing = conn.execute('SELECT last_update FROM matches WHERE id = ?', (match_id,)).fetchone()
+                if existing and existing[0] == match['lastUpdateDateTime']:
+                    continue  # Already up to date
+        else:
+            # Upcoming match: skip if last_update hasn't changed
+            existing_row = conn.execute('SELECT last_update FROM matches WHERE id = ?', (match_id,)).fetchone()
+            if existing_row and existing_row[0] == match['lastUpdateDateTime']:
                 continue  # Already up to date
 
         league = {
