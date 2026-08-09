@@ -135,15 +135,23 @@ async def config_game():
         api_url_preview = f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{current_season}'
         ui.label('⚽ Saison (OpenLigaDB)').classes('text-sm font-semibold mt-2')
         ui.label(f'Aktuelle API-URL: {api_url_preview}').classes('text-xs text-gray-500 mb-1')
+        ui.label(f'🟢 Aktuell aktive Saison: {current_season}').classes('text-xs text-blue-600 mb-1')
         season_input = ui.input(
-            label='Saison-Jahr (z. B. 2026)',
-            value=current_season,
+            label='Neue Saison aktivieren (z. B. 2027)',
+            value='',
         ).props('outlined dense').classes('w-48')
-        ui.label('Tipp: Saison wechseln → neues Jahr eintragen → erst testen, dann speichern.') \
+        ui.label('Tipp: Neues Jahr eintragen → testen → aktivieren.') \
             .classes('text-xs text-gray-400 mb-2')
 
         api_check_label = ui.label('').classes('text-sm')
-        api_check_state = {'ok': False}
+        api_check_state = {'ok': False, 'tested_season': None}
+
+        def on_season_input_change():
+            api_check_state['ok'] = False
+            api_check_state['tested_season'] = None
+            api_check_label.set_text('')
+
+        season_input.on_value_change(lambda _: on_season_input_change())
 
         def check_api():
             import requests as _requests
@@ -152,6 +160,7 @@ async def config_game():
                 api_check_label.set_text('❌ Kein gültiges Saison-Jahr.')
                 api_check_label.classes(remove='text-green-600 text-orange-600', add='text-red-600')
                 api_check_state['ok'] = False
+                api_check_state['tested_season'] = None
                 return
             url = f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{new_season}'
             try:
@@ -165,6 +174,7 @@ async def config_game():
                     )
                     api_check_label.classes(remove='text-green-600 text-red-600', add='text-orange-600')
                     api_check_state['ok'] = False
+                    api_check_state['tested_season'] = None
                     return
                 finished = sum(1 for m in data if m.get('matchIsFinished'))
                 api_check_label.set_text(
@@ -172,58 +182,75 @@ async def config_game():
                 )
                 api_check_label.classes(remove='text-red-600 text-orange-600', add='text-green-600')
                 api_check_state['ok'] = True
+                api_check_state['tested_season'] = new_season
             except _requests.exceptions.HTTPError as e:
                 api_check_label.set_text(f'❌ HTTP-Fehler: {e}')
                 api_check_label.classes(remove='text-green-600 text-orange-600', add='text-red-600')
                 api_check_state['ok'] = False
+                api_check_state['tested_season'] = None
             except Exception as e:
                 api_check_label.set_text(f'❌ Verbindungsfehler: {e}')
                 api_check_label.classes(remove='text-green-600 text-orange-600', add='text-red-600')
                 api_check_state['ok'] = False
+                api_check_state['tested_season'] = None
 
         sync_disabled_val = get_setting('sync_disabled', 'false') == 'true'
         sync_disabled_cb = ui.checkbox('Sync manuell deaktivieren', value=sync_disabled_val)
 
-        def save_sync():
+        sync_result_label = ui.label('').classes('text-sm')
+
+        def activate_season():
             new_season = season_input.value.strip()
             if not new_season.isdigit() or len(new_season) != 4:
-                ui.notify('❌ Saison muss eine 4-stellige Jahreszahl sein (z. B. 2026)', type='negative')
+                ui.notify('❌ Saison muss eine 4-stellige Jahreszahl sein (z. B. 2027)', type='negative')
                 return
-            if not api_check_state['ok']:
-                ui.notify('⚠️ Bitte erst den API-Endpunkt erfolgreich testen bevor du speicherst.', type='warning')
+            # Guard: Test muss für genau diese Saison durchgeführt worden sein
+            if not api_check_state['ok'] or api_check_state['tested_season'] != new_season:
+                ui.notify('⚠️ Bitte erst den API-Endpunkt für diese Saison testen.', type='warning')
+                return
+            # Guard: Saison ist bereits aktiv
+            active_season = get_setting('openligadb_season', OPENLIGADB_SEASON_FALLBACK)
+            if new_season == active_season:
+                ui.notify(f'ℹ️ Saison {new_season} ist bereits die aktive Saison.', type='info')
+                return
+            # Guard: Für diese Saison wurden bereits Tipps abgegeben
+            from app.backend.db.database_backend import get_db as _get_db
+            _db = _get_db()
+            has_tipps = _db.execute('SELECT 1 FROM tipps WHERE saison = ? LIMIT 1', (new_season,)).fetchone()
+            has_sondertipps = _db.execute('SELECT 1 FROM tipp_sonder WHERE saison = ? LIMIT 1', (new_season,)).fetchone()
+            if has_tipps or has_sondertipps:
+                ui.notify(
+                    f'🚫 Saison {new_season} wurde bereits gespielt – es gibt schon Tipps dafür. Aktivierung nicht möglich.',
+                    type='negative', timeout=6000,
+                )
                 return
             set_setting('openligadb_season', new_season)
-            # saison_name automatisch ableiten: 2026 → "Saison 2026/27"
             short_next = str(int(new_season) + 1)[2:]
             set_setting('saison_name', f'Saison {new_season}/{short_next}')
             set_setting('sync_disabled', 'true' if sync_disabled_cb.value else 'false')
-            # Sync-Timestamp zurücksetzen damit der nächste Sync sofort für die neue Saison läuft
+            # Sync-Timestamp zurücksetzen
             try:
-                from app.openligadb.db.database_openligadb import get_oldb
-                oldb = get_oldb()
-                oldb.execute("DELETE FROM sync_meta WHERE key = 'last_sync'")
-                oldb.commit()
+                from app.openligadb.db.database_openligadb import get_oldb as _get_oldb
+                _oldb = _get_oldb()
+                _oldb.execute("DELETE FROM sync_meta WHERE key = 'last_sync'")
+                _oldb.commit()
             except Exception:
                 pass
-            updated_url = f'https://api.openligadb.de/getmatchdata/{OPENLIGADB_SHORTCUT}/{new_season}'
-            ui.notify(f'✅ Gespeichert – neue API-URL: {updated_url}')
-
-        sync_result_label = ui.label('').classes('text-sm')
-
-        def force_sync():
+            # Sofort synchronisieren
             try:
                 from app.openligadb.services.importer import import_matches
                 import_matches(force_import=True)
-                sync_result_label.set_text('✅ Sync erfolgreich abgeschlossen.')
+                sync_result_label.set_text(f'✅ Saison {new_season}/{short_next} ist jetzt aktiv und alle Spiele wurden geladen.')
                 sync_result_label.classes(remove='text-red-600', add='text-green-600')
             except Exception as e:
-                sync_result_label.set_text(f'❌ Sync fehlgeschlagen: {e}')
+                sync_result_label.set_text(f'⚠️ Gespeichert, aber Sync fehlgeschlagen: {e}')
                 sync_result_label.classes(remove='text-green-600', add='text-red-600')
 
         with ui.row().classes('gap-2 mt-1'):
-            ui.button('🔍 Endpunkt testen', on_click=check_api).props('color=blue outline')
-            ui.button('💾 Speichern', on_click=save_sync)
-            ui.button('🔄 Jetzt synchronisieren', on_click=force_sync).props('color=orange outline')
+            ui.button('🔍 Endpunkt testen', on_click=check_api).props('color=blue outline') \
+                .tooltip('Prüft ob OpenLigaDB für das eingegebene Saison-Jahr erreichbar ist und Spieldaten zurückgibt. Speichert noch nichts.')
+            ui.button('🚀 Als aktive Saison setzen', on_click=activate_season).props('color=green') \
+                .tooltip('Nur nach erfolgreichem Test verfügbar. Speichert die Saison und lädt sofort alle Spiele herunter.')
 
         ui.separator()
 
