@@ -31,84 +31,88 @@ def show_all_tipps():
 
     alle_saisons = get_available_saisons()
     aktuelle = get_aktuelle_saison()
+    tipp_ende_passed = is_tipp_ende_passed()
     selected_saison = {'value': aktuelle if aktuelle in alle_saisons else (alle_saisons[0] if alle_saisons else None)}
 
-    if is_tipp_ende_passed():
-        ui.label("📄 Übersicht aller Tipps").classes("text-2xl my-4")
+    def saison_ist_freigegeben(saison: str) -> bool:
+        """Vergangene Saisons sind immer einsehbar, aktive Saison nur nach Tippende."""
+        return saison != aktuelle or tipp_ende_passed
 
-        with ui.row().classes("items-center gap-4 mb-2 no-print"):
-            ui.button("🖨️ Drucken", on_click=lambda: ui.run_javascript("window.print()"))
+    ui.label("📄 Tippübersicht").classes("text-2xl my-4")
 
-            if len(alle_saisons) > 1:
-                def on_saison_change(e):
-                    selected_saison['value'] = e.value
-                    build_uebersicht.refresh(e.value)
+    with ui.row().classes("items-center gap-4 mb-2 no-print"):
+        ui.button("🖨️ Drucken", on_click=lambda: ui.run_javascript("window.print()"))
 
-                ui.select(
-                    options=alle_saisons,
-                    value=selected_saison['value'],
-                    label="Saison",
-                    on_change=on_saison_change,
-                ).props("outlined dense")
+        if len(alle_saisons) > 1:
+            def on_saison_change(e):
+                selected_saison['value'] = e.value
+                build_inhalt.refresh(e.value)
 
-        def generate_tipps_excel(saison: str):
-            wb = Workbook()
-            ws = wb.active
-            ws.title = "Tipps"
-            all_usernames = set()
-            spieltage = spiel_service.get_spieltage(saison=saison)
-            for spieltag in spieltage:
-                tipps = get_tipps_for_spieltag(spieltag["id"], spiel_service.get_data_source_name())
-                all_usernames.update(t["username"] for t in tipps)
-            usernames = sorted(all_usernames)
-            ws.append(["Spieltag", "Spiel", "Ergebnis"] + usernames)
-            for spieltag in spieltage:
-                spiele = spiel_service.get_spiele_by_spieltag(spieltag["id"])
-                tipps = get_tipps_for_spieltag(spieltag["id"], spiel_service.get_data_source_name())
-                tipp_lookup = {}
-                for t in tipps:
-                    tipp_str = f'{t["tipp_heim"]}:{t["tipp_gast"]}' if t["tipp_heim"] is not None and t["tipp_gast"] is not None else "-"
-                    punkte = t.get("punkte")
-                    tipp_lookup[(t["spiel_id"], t["username"])] = f"{tipp_str} ({punkte})" if punkte is not None else f"{tipp_str} –"
-                for spiel in spiele:
-                    result = spiel_service.get_final_result_for_match(spiel["id"])
-                    row = [spieltag["order_number"], f'{spiel["heim"]} vs {spiel["gast"]}', result if result else "-"]
-                    for username in usernames:
-                        row.append(tipp_lookup.get((spiel["id"], username), "-"))
-                    ws.append(row)
-            # Sondertipps exportieren
-            platzierungstipps = get_all_sondertipps_for_saison(saison, "Platzierung")
-            from app.backend.models.user import get_user_by_id
-            alle_teams = spiel_service.get_alle_teams()
-            team_id_to_name = {team["id"]: team["name"] for team in alle_teams}
-            alle_plaetze = sorted({t["platz"] for t in platzierungstipps})
-            user_id_to_name = {}
-            for tipp in platzierungstipps:
-                if tipp["user_id"] not in user_id_to_name:
-                    u = get_user_by_id(tipp["user_id"])
-                    user_id_to_name[tipp["user_id"]] = u["username"] if u else str(tipp["user_id"])
-            ws_sonder = wb.create_sheet("Sondertipps")
-            ws_sonder.append(["Username"] + [f"Platz {p}" for p in alle_plaetze])
-            for user_id, username in user_id_to_name.items():
-                row = [username]
-                for platz in alle_plaetze:
-                    team_name = next((team_id_to_name[t["team_id"]] for t in platzierungstipps if t["user_id"] == user_id and t["platz"] == platz), "-")
-                    row.append(team_name)
-                ws_sonder.append(row)
-            bio = io.BytesIO()
-            wb.save(bio)
-            bio.seek(0)
-            return bio.read()
+            ui.select(
+                options=alle_saisons,
+                value=selected_saison['value'],
+                label="Saison",
+                on_change=on_saison_change,
+            ).props("outlined dense")
 
-        def download_excel():
-            data = generate_tipps_excel(selected_saison['value'])
-            ui.download(data, f"BundesligaTippspiel_Tipps_{selected_saison['value']}.xlsx")
+    def generate_tipps_excel(saison: str):
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Tipps"
+        all_usernames = set()
+        spieltage = spiel_service.get_spieltage(saison=saison)
+        for spieltag in spieltage:
+            tipps = get_tipps_for_spieltag(spieltag["id"], spiel_service.get_data_source_name())
+            all_usernames.update(t["username"] for t in tipps)
+        usernames = sorted(all_usernames)
+        ws.append(["Spieltag", "Spiel", "Ergebnis"] + usernames)
+        for spieltag in spieltage:
+            spiele = spiel_service.get_spiele_by_spieltag(spieltag["id"])
+            tipps = get_tipps_for_spieltag(spieltag["id"], spiel_service.get_data_source_name())
+            tipp_lookup = {}
+            for t in tipps:
+                tipp_str = f'{t["tipp_heim"]}:{t["tipp_gast"]}' if t["tipp_heim"] is not None and t["tipp_gast"] is not None else "-"
+                punkte = t.get("punkte")
+                tipp_lookup[(t["spiel_id"], t["username"])] = f"{tipp_str} ({punkte})" if punkte is not None else f"{tipp_str} –"
+            for spiel in spiele:
+                result = spiel_service.get_final_result_for_match(spiel["id"])
+                row = [spieltag["order_number"], f'{spiel["heim"]} vs {spiel["gast"]}', result if result else "-"]
+                for username in usernames:
+                    row.append(tipp_lookup.get((spiel["id"], username), "-"))
+                ws.append(row)
+        platzierungstipps = get_all_sondertipps_for_saison(saison, "Platzierung")
+        from app.backend.models.user import get_user_by_id
+        alle_teams = spiel_service.get_alle_teams()
+        team_id_to_name = {team["id"]: team["name"] for team in alle_teams}
+        alle_plaetze = sorted({t["platz"] for t in platzierungstipps})
+        user_id_to_name = {}
+        for tipp in platzierungstipps:
+            if tipp["user_id"] not in user_id_to_name:
+                u = get_user_by_id(tipp["user_id"])
+                user_id_to_name[tipp["user_id"]] = u["username"] if u else str(tipp["user_id"])
+        ws_sonder = wb.create_sheet("Sondertipps")
+        ws_sonder.append(["Username"] + [f"Platz {p}" for p in alle_plaetze])
+        for user_id, username in user_id_to_name.items():
+            row = [username]
+            for platz in alle_plaetze:
+                team_name = next((team_id_to_name[t["team_id"]] for t in platzierungstipps if t["user_id"] == user_id and t["platz"] == platz), "-")
+                row.append(team_name)
+            ws_sonder.append(row)
+        bio = io.BytesIO()
+        wb.save(bio)
+        bio.seek(0)
+        return bio.read()
 
-        ui.button("📥 Excel-Export", on_click=download_excel).classes("mb-4 no-print")
+    @ui.refreshable
+    def build_inhalt(saison: str):
+        if saison_ist_freigegeben(saison):
+            # --- Alle-User-Übersicht (Saison beendet oder vergangene Saison) ---
+            def download_excel():
+                data = generate_tipps_excel(saison)
+                ui.download(data, f"BundesligaTippspiel_Tipps_{saison}.xlsx")
 
-        @ui.refreshable
-        def build_uebersicht(saison: str):
-            # Sondertipps / Platzierungstipps Übersicht
+            ui.button("📥 Excel-Export", on_click=download_excel).classes("mb-4 no-print")
+
             platzierungstipps = get_all_sondertipps_for_saison(saison, "Platzierung")
             from app.backend.models.user import get_user_by_id
             alle_teams = spiel_service.get_alle_teams()
@@ -169,21 +173,16 @@ def show_all_tipps():
                 ui.label(f'Spieltag {spieltag["order_number"]}').classes("text-xl mt-6")
 
                 from app.backend.models.tipps import aktualisiere_punkte_fuer_spiel
+                from app.openligadb.db.database_openligadb import get_oldb
+                conn_ol = get_oldb()
                 for spiel in spiele:
                     result = spiel_service.get_final_result_for_match(spiel["id"])
-                    from app.openligadb.db.database_openligadb import get_oldb
-                    conn_ol = get_oldb()
                     is_finished_row = conn_ol.execute(
                         "SELECT is_finished FROM matches WHERE id = ?", (spiel["id"],)
                     ).fetchone()
                     is_finished = is_finished_row[0] if is_finished_row else 0
-
                     if result and is_finished:
-                        missing_punkte = any(
-                            t.get("punkte") is None
-                            for t in tipps
-                            if t["spiel_id"] == spiel["id"]
-                        )
+                        missing_punkte = any(t.get("punkte") is None for t in tipps if t["spiel_id"] == spiel["id"])
                         if missing_punkte:
                             try:
                                 aktualisiere_punkte_fuer_spiel(spiel["id"])
@@ -191,14 +190,12 @@ def show_all_tipps():
                                 logging.error(f"Fehler beim Nachberechnen der Punkte für Spiel {spiel['id']}: {e}")
 
                 usernames = sorted({t["username"] for t in tipps})
-
                 columns_spiel = [
                     {"name": "spiel", "label": "Spiel", "field": "spiel", "align": "center"},
                     {"name": "result", "label": "Ergebnis", "field": "result", "align": "center"},
                 ] + [
                     {"name": username, "label": username, "field": username, "align": "center"} for username in usernames
                 ]
-
                 tipp_lookup = {}
                 for t in tipps:
                     tipp_str = f'{t["tipp_heim"]}:{t["tipp_gast"]}' if t["tipp_heim"] is not None and t["tipp_gast"] is not None else "-"
@@ -208,48 +205,19 @@ def show_all_tipps():
                 spiel_rows = []
                 for spiel in spiele:
                     result = spiel_service.get_final_result_for_match(spiel["id"])
-                    row = {
-                        "spiel": f'{spiel["heim"]} vs {spiel["gast"]}',
-                        "result": result if result else "-"
-                    }
+                    row = {"spiel": f'{spiel["heim"]} vs {spiel["gast"]}', "result": result if result else "-"}
                     for username in usernames:
                         tipp_str, punkte = tipp_lookup.get((spiel["id"], username), ("-", None))
-                        if tipp_str == "-":
-                            row[username] = "-"
-                        else:
-                            row[username] = f"{tipp_str} ({punkte})" if punkte is not None else f"{tipp_str} –"
+                        row[username] = "-" if tipp_str == "-" else (f"{tipp_str} ({punkte})" if punkte is not None else f"{tipp_str} –")
                     spiel_rows.append(row)
 
-                with ui.table(columns=columns_spiel, rows=spiel_rows).classes("w-full").props(
-                        'dense bordered separator="cell"'
-                ):
+                with ui.table(columns=columns_spiel, rows=spiel_rows).classes("w-full").props('dense bordered separator="cell"'):
                     pass
 
-        if selected_saison['value']:
-            build_uebersicht(selected_saison['value'])
         else:
-            ui.label("Keine Saison-Daten verfügbar.").classes("text-gray-500")
+            # --- Eigene Tipps (aktive Saison, Tippende noch nicht erreicht) ---
+            ui.label("⏳ Die Tippübersicht aller Spieler wird nach dem Tippende freigeschaltet.").classes("text-sm text-orange-600 mb-4")
 
-    else:
-        ui.label("Deine Tippübersicht")
-
-        with ui.row().classes("items-center gap-4 mb-2 no-print"):
-            ui.button("🖨️ Drucken", on_click=lambda: ui.run_javascript("window.print()"))
-
-            if len(alle_saisons) > 1:
-                def on_saison_change_user(e):
-                    selected_saison['value'] = e.value
-                    build_user_uebersicht.refresh(e.value)
-
-                ui.select(
-                    options=alle_saisons,
-                    value=selected_saison['value'],
-                    label="Saison",
-                    on_change=on_saison_change_user,
-                ).props("outlined dense")
-
-        @ui.refreshable
-        def build_user_uebersicht(saison: str):
             for spieltag in spiel_service.get_spieltage(saison=saison):
                 spiele = spiel_service.get_spiele_by_spieltag(spieltag["id"])
                 tipps = get_tipps_for_user_by_spieltag(spieltag["id"], user["id"], spiel_service.get_data_source_name())
@@ -257,21 +225,16 @@ def show_all_tipps():
                 ui.label(f'Spieltag {spieltag["order_number"]}').classes("text-xl mt-6")
 
                 from app.backend.models.tipps import aktualisiere_punkte_fuer_spiel
+                from app.openligadb.db.database_openligadb import get_oldb
+                conn_ol = get_oldb()
                 for spiel in spiele:
                     result = spiel_service.get_final_result_for_match(spiel["id"])
-                    from app.openligadb.db.database_openligadb import get_oldb
-                    conn_ol = get_oldb()
                     is_finished_row = conn_ol.execute(
                         "SELECT is_finished FROM matches WHERE id = ?", (spiel["id"],)
                     ).fetchone()
                     is_finished = is_finished_row[0] if is_finished_row else 0
-
                     if result and is_finished:
-                        missing_punkte = any(
-                            t.get("punkte") is None
-                            for t in tipps
-                            if t["spiel_id"] == spiel["id"]
-                        )
+                        missing_punkte = any(t.get("punkte") is None for t in tipps if t["spiel_id"] == spiel["id"])
                         if missing_punkte:
                             try:
                                 aktualisiere_punkte_fuer_spiel(spiel["id"])
@@ -283,7 +246,6 @@ def show_all_tipps():
                     {"name": "result", "label": "Ergebnis", "field": "result", "align": "center"},
                     {"name": "tipp", "label": "Tipp", "field": "tipp", "align": "center"},
                 ]
-
                 rows = []
                 for tipp in tipps:
                     spiel = next((s for s in spiele if s["id"] == tipp["spiel_id"]), None)
@@ -292,23 +254,18 @@ def show_all_tipps():
                     result = spiel_service.get_final_result_for_match(spiel["id"])
                     tipp_str = f'{tipp["tipp_heim"]}:{tipp["tipp_gast"]}' if tipp["tipp_heim"] is not None and tipp["tipp_gast"] is not None else "-"
                     punkte = tipp.get("punkte")
-                    if tipp_str == "-":
-                        tipp_display = "-"
-                    else:
-                        tipp_display = f"{tipp_str} ({punkte})" if punkte is not None else f"{tipp_str} –"
+                    tipp_display = "-" if tipp_str == "-" else (f"{tipp_str} ({punkte})" if punkte is not None else f"{tipp_str} –")
                     rows.append({
                         "spiel": f'{spiel["heim"]} vs {spiel["gast"]}',
                         "result": result if result else "-",
                         "tipp": tipp_display,
                     })
 
-                with ui.table(columns=columns, rows=rows).classes("w-full").props(
-                    'dense bordered separator="cell"'
-                ):
+                with ui.table(columns=columns, rows=rows).classes("w-full").props('dense bordered separator="cell"'):
                     pass
 
-        if selected_saison['value']:
-            build_user_uebersicht(selected_saison['value'])
-        else:
-            ui.label("Keine Saison-Daten verfügbar.").classes("text-gray-500")
+    if selected_saison['value']:
+        build_inhalt(selected_saison['value'])
+    else:
+        ui.label("Keine Saison-Daten verfügbar.").classes("text-gray-500")
 
